@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
-LoanFlow/backend/node_modules/
-LoanFlow/frontend/node_modules/
+backend/node_modules/
+frontend/node_modules/
 
 # Build artifacts
 .next/
@@ -10,21 +10,24 @@ LoanFlow/frontend/node_modules/
 dist/
 build/
 coverage/
-LoanFlow/frontend/.next/
-LoanFlow/frontend/.next-dev/
-LoanFlow/frontend/.next-build/
+frontend/.next/
+frontend/.next-dev/
+frontend/.next-build/
 
 # Runtime logs
 *.log
-LoanFlow/.run-logs/
+.run-logs/
 
 # Environment files
 .env
 .env.local
 .env.*.local
-LoanFlow/backend/.env
-LoanFlow/backend/.env.local
-LoanFlow/frontend/.env.local
+backend/.env
+backend/.env.local
+frontend/.env.local
+
+# Local leftover nested folder (not for repo root)
+LoanFlow/
 
 # OS/Editor
 .DS_Store
