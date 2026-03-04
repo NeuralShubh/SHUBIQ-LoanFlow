@@ -1,0 +1,205 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      Role     @default(STAFF)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Staff-assigned loans and members
+  loans     Loan[]
+  members   Member[]
+  createdBranches Branch[] @relation("BranchCreator")
+  createdCentres  Centre[] @relation("CentreCreator")
+
+  @@index([role, branchId, isActive])
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  code      String   @unique // B01, B02, etc.
+  name      String
+  createdById String?
+  createdBy User?    @relation("BranchCreator", fields: [createdById], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  centres  Centre[]
+  users    User[]
+  members  Member[]
+  loans    Loan[]
+
+  @@index([createdById])
+  @@map("branches")
+}
+
+model Centre {
+  id        String   @id @default(cuid())
+  code      String   @unique // C01, C02, etc.
+  name      String
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  createdById String?
+  createdBy User?    @relation("CentreCreator", fields: [createdById], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  Member[]
+  loans    Loan[]
+
+  @@index([createdById])
+  @@map("centres")
+}
+
+model Member {
+  id        String       @id @default(cuid())
+  memberId  String       @unique // M001, M002, etc.
+  name      String
+  phone     String
+  aadhar    String?
+  area      String?
+  branchId  String
+  branch    Branch       @relation(fields: [branchId], references: [id])
+  centreId  String
+  centre    Centre       @relation(fields: [centreId], references: [id])
+  staffId   String?
+  staff     User?        @relation(fields: [staffId], references: [id])
+  status    MemberStatus @default(ACTIVE)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  loans Loan[]
+
+  @@index([branchId, isActive])
+  @@index([staffId])
+  @@index([centreId])
+  @@map("members")
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Loan {
+  id           String     @id @default(cuid())
+  loanId       String     @unique // LN001, LN002, etc.
+  memberId     String
+  member       Member     @relation(fields: [memberId], references: [id])
+  branchId     String
+  branch       Branch     @relation(fields: [branchId], references: [id])
+  centreId     String
+  centre       Centre     @relation(fields: [centreId], references: [id])
+  staffId      String?
+  staff        User?      @relation(fields: [staffId], references: [id])
+  
+  principal    Float
+  interestRate Float      // % per annum
+  durationWeeks Int
+  fixedFeeRate Float      @default(2) // %
+  
+  // Calculated fields stored for performance
+  interestAmount Float
+  fixedFee      Float
+  totalPayable  Float
+  weeklyEmi     Float
+  
+  loanDate      DateTime
+  emiStartDate  DateTime
+  notes         String?
+  
+  status        LoanStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  emis EmiPayment[]
+
+  @@index([branchId, status])
+  @@index([loanDate])
+  @@index([memberId])
+  @@index([staffId])
+  @@index([centreId])
+  @@map("loans")
+}
+
+enum LoanStatus {
+  ACTIVE
+  OVERDUE
+  COMPLETED
+  CANCELLED
+}
+
+model EmiPayment {
+  id            String        @id @default(cuid())
+  loanId        String
+  loan          Loan          @relation(fields: [loanId], references: [id])
+  emiNumber     Int
+  dueDate       DateTime
+  amount        Float
+  paidAmount    Float?
+  paidDate      DateTime?
+  paymentMethod PaymentMethod?
+  status        EmiStatus     @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([loanId])
+  @@index([status, dueDate])
+  @@index([dueDate])
+  @@index([status, paidDate])
+  @@map("emi_payments")
+}
+
+enum EmiStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CARD
+  CHEQUE
+  NEFT
+}
+
+model QrCode {
+  id        String   @id @default(cuid())
+  name      String
+  upiId     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("qr_codes")
+}

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+LoanFlow/backend/node_modules/
+LoanFlow/frontend/node_modules/
+
+# Build artifacts
+.next/
+.next-dev/
+.next-build/
+dist/
+build/
+coverage/
+LoanFlow/frontend/.next/
+LoanFlow/frontend/.next-dev/
+LoanFlow/frontend/.next-build/
+
+# Runtime logs
+*.log
+LoanFlow/.run-logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+LoanFlow/backend/.env
+LoanFlow/backend/.env.local
+LoanFlow/frontend/.env.local
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
