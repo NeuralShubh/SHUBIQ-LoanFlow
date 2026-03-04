@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bachat Gat — Loan Management System</title>
+  <title>Loan System — Loan Management System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -448,7 +448,7 @@
     <div class="login-logo">
       <div class="login-logo-icon">🏦</div>
       <div class="login-logo-text">
-        <h1>Bachat Gat</h1>
+        <h1>Loan System</h1>
         <p>Loan Management System</p>
       </div>
     </div>
@@ -477,7 +477,7 @@
   <nav class="top-nav">
     <div class="nav-logo">
       <div class="nav-logo-icon">🏦</div>
-      <span class="nav-logo-text">Bachat Gat</span>
+      <span class="nav-logo-text">Loan System</span>
       <span class="nav-logo-role" id="role-badge">Admin</span>
     </div>
     <div class="nav-actions">
@@ -579,7 +579,7 @@
       </div>
 
       <div class="stat-grid">
-        <div class="stat-card green"><div class="stat-icon">💸</div><div class="stat-val green">₹8.4L</div><div class="stat-label">Branch Total</div></div>
+        <div class="stat-card green"><div class="stat-icon">💸</div><div class="stat-val green">₹8.4L</div><div class="stat-label">My Total</div></div>
         <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-val blue">48</div><div class="stat-label">My Members</div></div>
         <div class="stat-card gold"><div class="stat-icon">📋</div><div class="stat-val gold">32</div><div class="stat-label">Active Loans</div></div>
         <div class="stat-card red"><div class="stat-icon">🚨</div><div class="stat-val red">3</div><div class="stat-label">EMIs Overdue</div></div>
@@ -822,10 +822,10 @@
           <div><label class="form-label">To Date</label><input class="form-input" type="date" value="2026-03-03"></div>
         </div>
         <div class="form-group"><label class="form-label">Branch</label>
-          <select class="form-select"><option>All Branches</option><option>B01 — Pune Main</option><option>B02 — Pimpri</option><option>B03 — Kothrud</option></select>
+          <select class="form-select" id="report-branch-filter"><option>All Branches</option><option>B01 — Pune Main</option><option>B02 — Pimpri</option><option>B03 — Kothrud</option></select>
         </div>
         <div class="form-group"><label class="form-label">Staff</label>
-          <select class="form-select"><option>All Staff</option><option>Ravi Kumar</option><option>Suresh Patil</option><option>Manoj Shinde</option></select>
+          <select class="form-select" id="report-staff-filter"><option>All Staff</option><option>Ravi Kumar</option><option>Suresh Patil</option><option>Manoj Shinde</option></select>
         </div>
         <div style="display:flex;gap:8px;margin-top:4px">
           <button class="btn-primary" style="flex:1;margin-top:0" onclick="showToast('📊 Report generated!')">Generate</button>
@@ -833,8 +833,8 @@
           <button class="btn-outline" onclick="showToast('📄 Downloading PDF…')">PDF</button>
         </div>
       </div>
-      <div class="section-title">Branch Summary — March 2026</div>
-      <div class="card" style="padding:0 16px">
+      <div class="section-title" id="reports-summary-title">Branch Summary — March 2026</div>
+      <div class="card" style="padding:0 16px" id="reports-summary-list">
         <div class="list-item"><div class="list-info"><div class="list-name">Branch 01 — Pune Main</div><div class="list-sub">142 active loans · 3 overdue</div></div><div class="list-right"><div class="list-amount text-green">₹8.4L</div><div class="list-badge badge-green">96.4%</div></div></div>
         <div class="list-item"><div class="list-info"><div class="list-name">Branch 02 — Pimpri</div><div class="list-sub">128 active loans · 8 overdue</div></div><div class="list-right"><div class="list-amount text-gold">₹7.1L</div><div class="list-badge badge-gold">84.2%</div></div></div>
         <div class="list-item"><div class="list-info"><div class="list-name">Branch 03 — Kothrud</div><div class="list-sub">72 active loans · 12 overdue</div></div><div class="list-right"><div class="list-amount text-red">₹3.9L</div><div class="list-badge badge-red">68.8%</div></div></div>
@@ -872,6 +872,19 @@
         <div class="settings-note" id="qr-staff-note" style="display:none">View only access: Staff can see QR codes but cannot add or remove.</div>
         <div class="qr-toggle-row" id="qr-toggle-container"></div>
         <div class="qr-viewer" id="qr-list-container"></div>
+      </div>
+
+      <div class="section-title" id="admin-security-title" style="display:none">Admin Security</div>
+      <div class="card" id="admin-password-section" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Current Password</label>
+          <input class="form-input" type="password" id="admin-current-pass" placeholder="Enter current password">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">New Password</label>
+          <input class="form-input" type="password" id="admin-new-pass" placeholder="Enter new password">
+        </div>
+        <button class="btn-primary" style="margin-top:0" onclick="changeAdminPassword()">Change Password</button>
       </div>
 
       <div class="section-title">System</div>
@@ -1181,6 +1194,10 @@ let pendingEmiIdx = null;
 let lastBranchId = null, lastBranchName = null;
 let addBcType = 'branch';
 let lastMemberCtx = null;
+let currentStaffId = null;
+const DEFAULT_ADMIN_PASSWORD = 'demo1234';
+const ADMIN_PASSWORD_KEY = 'loan_system_admin_password';
+let adminPassword = localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
 
 // ─── DEMO DATA ───
 const BRANCHES = {
@@ -1226,6 +1243,27 @@ let activeQrId = QR_CODES[0] ? QR_CODES[0].id : null;
 const INITIAL_STAFF = STAFF.map(s => ({...s}));
 const INITIAL_QR_CODES = QR_CODES.map(q => ({...q}));
 
+function getCurrentStaff() {
+  if (!currentStaffId) return null;
+  return STAFF.find(s => s.id === currentStaffId) || null;
+}
+
+function getScopeBranchId() {
+  if (currentRole === 'admin') return null;
+  const staff = getCurrentStaff();
+  return staff ? staff.branch : 'B01';
+}
+
+function canAccessBranch(branchId) {
+  const scopeBranch = getScopeBranchId();
+  return !scopeBranch || scopeBranch === branchId;
+}
+
+function canAccessMember(member) {
+  if (!member) return false;
+  return canAccessBranch(member.branch);
+}
+
 const AVATARS = [
   'linear-gradient(135deg,#ec4899,#8b5cf6)',
   'linear-gradient(135deg,#3b82f6,#06b6d4)',
@@ -1261,11 +1299,24 @@ function setRole(role, el) {
 }
 
 function doLogin() {
+  const loginEmail = document.getElementById('login-email').value.trim().toLowerCase();
+  const loginPass = document.getElementById('login-pass').value;
+  if (currentRole === 'admin') {
+    if (loginEmail !== 'admin@bachatgat.com') {
+      showToast('⚠️ Admin email is incorrect');
+      return;
+    }
+    if (loginPass !== adminPassword) {
+      showToast('⚠️ Admin password is incorrect');
+      return;
+    }
+  }
   document.getElementById('screen-login').classList.remove('active');
   const shell = document.getElementById('app-shell');
   shell.classList.add('active');
 
   if (currentRole === 'admin') {
+    currentStaffId = null;
     document.getElementById('role-badge').textContent = 'Admin';
     document.getElementById('nav-avatar').textContent = 'A';
     document.getElementById('settings-avatar').textContent = 'A';
@@ -1276,24 +1327,48 @@ function doLogin() {
     document.getElementById('staff-mgmt-section').style.display = 'block';
     document.getElementById('qr-admin-tools').style.display = 'block';
     document.getElementById('qr-staff-note').style.display = 'none';
+    document.getElementById('admin-security-title').style.display = 'flex';
+    document.getElementById('admin-password-section').style.display = 'block';
     document.getElementById('loan-pg-sub').textContent = 'All branches · All staff';
+    document.getElementById('add-branch-centre-btn').style.display = 'block';
+    document.getElementById('bc-all').textContent = 'All Branches';
+    document.getElementById('report-branch-filter').disabled = false;
+    document.getElementById('report-staff-filter').disabled = false;
+    renderBranchList();
+    renderReportsSummary();
     renderQrCodes();
     renderStaffList();
     buildNav(adminNav);
     renderLoansList();
     goPage('dashboard');
   } else {
+    const matchedStaff = STAFF.find(s => (s.email || '').toLowerCase() === loginEmail) || STAFF[0] || null;
+    currentStaffId = matchedStaff ? matchedStaff.id : null;
+    const staffName = matchedStaff ? matchedStaff.name : 'Staff User';
+    const staffEmail = matchedStaff ? matchedStaff.email : 'staff@bachatgat.com';
+    const staffBranch = matchedStaff ? matchedStaff.branch : 'B01';
+    const staffBranchName = BRANCHES[staffBranch] ? BRANCHES[staffBranch].name : staffBranch;
+    const staffAvatar = staffName.split(' ').map(n => n[0]).join('').slice(0, 1).toUpperCase() || 'S';
     document.getElementById('role-badge').textContent = 'Staff';
-    document.getElementById('nav-avatar').textContent = 'R';
-    document.getElementById('settings-avatar').textContent = 'R';
-    document.getElementById('settings-name').textContent = 'Ravi Kumar';
-    document.getElementById('settings-email').textContent = 'ravi@bachatgat.com';
+    document.getElementById('nav-avatar').textContent = staffAvatar;
+    document.getElementById('settings-avatar').textContent = staffAvatar;
+    document.getElementById('settings-name').textContent = staffName;
+    document.getElementById('settings-email').textContent = staffEmail;
     document.getElementById('settings-role').textContent = 'Staff';
     document.getElementById('settings-role').className = 'list-badge badge-green';
     document.getElementById('staff-mgmt-section').style.display = 'none';
     document.getElementById('qr-admin-tools').style.display = 'none';
     document.getElementById('qr-staff-note').style.display = 'block';
-    document.getElementById('loan-pg-sub').textContent = 'Branch 01 — your loans';
+    document.getElementById('admin-security-title').style.display = 'none';
+    document.getElementById('admin-password-section').style.display = 'none';
+    document.getElementById('loan-pg-sub').textContent = `${staffBranch} — your loans`;
+    document.getElementById('member-page-sub').textContent = `${staffBranch} — Select Centre`;
+    document.getElementById('add-branch-centre-btn').style.display = 'none';
+    document.getElementById('bc-all').textContent = 'My Branch';
+    document.getElementById('report-branch-filter').disabled = true;
+    document.getElementById('report-staff-filter').disabled = true;
+    renderBranchList();
+    renderReportsSummary();
     renderQrCodes();
     buildNav(staffNav);
     renderLoansList();
@@ -1302,8 +1377,34 @@ function doLogin() {
 }
 
 function doLogout() {
+  currentStaffId = null;
   document.getElementById('app-shell').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
+  document.getElementById('admin-current-pass').value = '';
+  document.getElementById('admin-new-pass').value = '';
+}
+
+function changeAdminPassword() {
+  if (currentRole !== 'admin') return;
+  const currentPass = document.getElementById('admin-current-pass').value;
+  const newPass = document.getElementById('admin-new-pass').value.trim();
+  if (!currentPass || !newPass) {
+    showToast('⚠️ Enter current and new password');
+    return;
+  }
+  if (currentPass !== adminPassword) {
+    showToast('⚠️ Current password is incorrect');
+    return;
+  }
+  if (newPass.length < 4) {
+    showToast('⚠️ New password must be at least 4 characters');
+    return;
+  }
+  adminPassword = newPass;
+  localStorage.setItem(ADMIN_PASSWORD_KEY, adminPassword);
+  document.getElementById('admin-current-pass').value = '';
+  document.getElementById('admin-new-pass').value = '';
+  showToast('✅ Admin password changed successfully');
 }
 
 // ══════════════ NAV ══════════════
@@ -1317,6 +1418,59 @@ function buildNav(items) {
   ).join('');
 }
 
+function renderBranchList() {
+  const container = document.getElementById('view-branches');
+  if (!container) return;
+  const allowedBranchIds = Object.keys(BRANCHES).filter(bid => canAccessBranch(bid));
+  if (allowedBranchIds.length === 0) {
+    container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">No branches available</div>';
+    return;
+  }
+  container.innerHTML = allowedBranchIds.map(bid => {
+    const branch = BRANCHES[bid];
+    const count = MEMBERS.filter(m => m.branch === bid).length;
+    return `<div class="tree-item" onclick="navTree('branch','${bid}','${bid} — ${branch.name}')">
+      <div class="tree-icon" style="background:rgba(29,78,216,0.15)">🏢</div>
+      <div class="tree-info"><div class="tree-name">${bid} — ${branch.name}</div><div class="tree-sub">ID: ${bid} · ${branch.centres.length} Centres · ${count} Members</div></div>
+      <div class="tree-right"><span class="list-badge badge-green">Active</span><span class="tree-arrow">›</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderReportsSummary() {
+  const summaryTitle = document.getElementById('reports-summary-title');
+  const summaryList = document.getElementById('reports-summary-list');
+  const branchFilter = document.getElementById('report-branch-filter');
+  const staffFilter = document.getElementById('report-staff-filter');
+  const staff = getCurrentStaff();
+  if (!summaryTitle || !summaryList || !branchFilter || !staffFilter) return;
+
+  const branchIds = Object.keys(BRANCHES).filter(bid => canAccessBranch(bid));
+  if (currentRole === 'admin') {
+    summaryTitle.textContent = 'Branch Summary — March 2026';
+    branchFilter.innerHTML = '<option>All Branches</option>' + Object.keys(BRANCHES).map(bid => `<option>${bid} — ${BRANCHES[bid].name}</option>`).join('');
+    staffFilter.innerHTML = '<option>All Staff</option>' + STAFF.map(s => `<option>${s.name}</option>`).join('');
+  } else {
+    const scopedBranch = getScopeBranchId();
+    const scopedBranchName = BRANCHES[scopedBranch] ? BRANCHES[scopedBranch].name : scopedBranch;
+    summaryTitle.textContent = `${scopedBranch} Summary — March 2026`;
+    branchFilter.innerHTML = `<option>${scopedBranch} — ${scopedBranchName}</option>`;
+    staffFilter.innerHTML = `<option>${staff ? staff.name : 'Current Staff'}</option>`;
+  }
+
+  summaryList.innerHTML = branchIds.map(bid => {
+    const branchName = BRANCHES[bid] ? BRANCHES[bid].name : bid;
+    const branchMembers = MEMBERS.filter(m => m.branch === bid && m.loan);
+    const active = branchMembers.filter(m => m.status === 'active').length;
+    const overdue = branchMembers.filter(m => m.status === 'overdue').length;
+    const total = branchMembers.reduce((sum, m) => sum + calcTotal(m.loan), 0);
+    const pct = active + overdue > 0 ? Math.max(1, Math.min(99, Math.round((active / (active + overdue)) * 100))) : 0;
+    const badgeClass = overdue > 0 ? 'badge-gold' : 'badge-green';
+    const amountClass = overdue > active ? 'text-red' : 'text-green';
+    return `<div class="list-item"><div class="list-info"><div class="list-name">${bid} — ${branchName}</div><div class="list-sub">${active} active loans · ${overdue} overdue</div></div><div class="list-right"><div class="list-amount ${amountClass}">Rs ${(total/100000).toFixed(1)}L</div><div class="list-badge ${badgeClass}">${pct}%</div></div></div>`;
+  }).join('');
+}
+
 function goPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById('page-' + id);
@@ -1325,6 +1479,8 @@ function goPage(id) {
   const navItem = document.getElementById('nav-' + id);
   if (navItem) navItem.classList.add('active');
   if (id === 'loans') renderLoansList();
+  if (id === 'members') navTree('root');
+  if (id === 'reports') renderReportsSummary();
   document.querySelector('.page-content').scrollTop = 0;
 }
 
@@ -1335,53 +1491,86 @@ function navTree(level, id, name) {
   const vMembers  = document.getElementById('view-members');
   const addMemBtn = document.getElementById('add-member-btn');
   const addBcBtn  = document.getElementById('add-branch-centre-btn');
+  const isAdmin = currentRole === 'admin';
 
   if (level === 'root') {
-    vBranches.style.display = 'block'; vCentres.style.display = 'none'; vMembers.style.display = 'none';
+    vBranches.style.display = 'block';
+    vCentres.style.display = 'none';
+    vMembers.style.display = 'none';
     addMemBtn.style.display = 'none';
-    addBcBtn.textContent = '+ Branch'; addBcBtn.style.display = 'block';
-    addBcBtn.onclick = () => openAddBranchCentre('branch');
-    document.getElementById('member-page-sub').textContent = 'Select Branch → Centre → Members';
-    // breadcrumb
+    if (isAdmin) {
+      addBcBtn.textContent = '+ Branch';
+      addBcBtn.style.display = 'block';
+      addBcBtn.onclick = () => openAddBranchCentre('branch');
+      document.getElementById('member-page-sub').textContent = 'Select Branch -> Centre -> Members';
+    } else {
+      const scopeBranch = getScopeBranchId();
+      addBcBtn.style.display = 'none';
+      document.getElementById('member-page-sub').textContent = `${scopeBranch} - Select Centre`;
+    }
+    renderBranchList();
+
     document.getElementById('bc-all').className = 'bc-item active';
     document.getElementById('bc-sep1').style.display = 'none';
     document.getElementById('bc-branch').style.display = 'none';
     document.getElementById('bc-sep2').style.display = 'none';
     document.getElementById('bc-centre').style.display = 'none';
-    lastBranchId = null; lastBranchName = null;
+    lastBranchId = null;
+    lastBranchName = null;
 
   } else if (level === 'branch') {
-    lastBranchId = id; lastBranchName = name;
-    vBranches.style.display = 'none'; vCentres.style.display = 'block'; vMembers.style.display = 'none';
+    if (!canAccessBranch(id)) {
+      showToast('Access denied for this branch');
+      return;
+    }
+    lastBranchId = id;
+    lastBranchName = name;
+    vBranches.style.display = 'none';
+    vCentres.style.display = 'block';
+    vMembers.style.display = 'none';
     addMemBtn.style.display = 'none';
-    addBcBtn.textContent = '+ Centre'; addBcBtn.style.display = 'block';
-    addBcBtn.onclick = () => openAddBranchCentre('centre');
-    document.getElementById('member-page-sub').textContent = name + ' — Select Centre';
-    // breadcrumb
+    if (isAdmin) {
+      addBcBtn.textContent = '+ Centre';
+      addBcBtn.style.display = 'block';
+      addBcBtn.onclick = () => openAddBranchCentre('centre');
+    } else {
+      addBcBtn.style.display = 'none';
+    }
+    document.getElementById('member-page-sub').textContent = name + ' - Select Centre';
+
     document.getElementById('bc-all').className = 'bc-item';
     document.getElementById('bc-sep1').style.display = 'inline';
     const bcBr = document.getElementById('bc-branch');
-    bcBr.style.display = 'inline'; bcBr.textContent = id; bcBr.className = 'bc-item active';
+    bcBr.style.display = 'inline';
+    bcBr.textContent = id;
+    bcBr.className = 'bc-item active';
     document.getElementById('bc-sep2').style.display = 'none';
     document.getElementById('bc-centre').style.display = 'none';
     renderCentres(id);
 
   } else if (level === 'centre') {
-    vBranches.style.display = 'none'; vCentres.style.display = 'none'; vMembers.style.display = 'block';
+    vBranches.style.display = 'none';
+    vCentres.style.display = 'none';
+    vMembers.style.display = 'block';
     addMemBtn.style.display = 'block';
     addBcBtn.style.display = 'none';
-    document.getElementById('member-page-sub').textContent = lastBranchName + ' › ' + id + ' — ' + name;
-    // breadcrumb
+    document.getElementById('member-page-sub').textContent = `${lastBranchName} > ${id} - ${name}`;
+
     document.getElementById('bc-all').className = 'bc-item';
     document.getElementById('bc-branch').className = 'bc-item';
     document.getElementById('bc-sep2').style.display = 'inline';
     const bcCt = document.getElementById('bc-centre');
-    bcCt.style.display = 'inline'; bcCt.textContent = id + ' — ' + name; bcCt.className = 'bc-item active';
+    bcCt.style.display = 'inline';
+    bcCt.textContent = `${id} - ${name}`;
+    bcCt.className = 'bc-item active';
     renderMemberList(lastBranchId, id);
   }
 }
-
 function renderCentres(branchId) {
+  if (!canAccessBranch(branchId)) {
+    document.getElementById('centre-list-container').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Access denied for this branch</div>';
+    return;
+  }
   const centres = BRANCHES[branchId] ? BRANCHES[branchId].centres : [];
   const members = MEMBERS.filter(m => m.branch === branchId);
   let html = '';
@@ -1389,18 +1578,20 @@ function renderCentres(branchId) {
     const c = CENTRES[cid];
     const cnt = members.filter(m => m.centre === cid).length;
     html += `<div class="tree-item" onclick="navTree('centre','${cid}','${c.name}')">
-      <div class="tree-icon" style="background:rgba(59,130,246,0.12)">📍</div>
-      <div class="tree-info"><div class="tree-name">${cid} — ${c.name}</div><div class="tree-sub">Centre ID: ${cid} · ${cnt} members</div></div>
-      <div class="tree-right"><span class="tree-count">${cnt}</span><span class="tree-arrow">›</span></div>
+      <div class="tree-icon" style="background:rgba(59,130,246,0.12)">C</div>
+      <div class="tree-info"><div class="tree-name">${cid} - ${c.name}</div><div class="tree-sub">Centre ID: ${cid} � ${cnt} members</div></div>
+      <div class="tree-right"><span class="tree-count">${cnt}</span><span class="tree-arrow">�</span></div>
     </div>`;
   });
   if (!html) html = '<div style="padding:24px;text-align:center;color:var(--text3)">No centres in this branch</div>';
   document.getElementById('centre-list-container').innerHTML = html;
 }
-
 function renderMemberList(branchId, centreId) {
+  if (!canAccessBranch(branchId)) {
+    document.getElementById('member-list-container').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Access denied for this branch</div>';
+    return;
+  }
   const mems = MEMBERS.filter(m => m.branch === branchId && m.centre === centreId);
-  // default show 'active' tab highlighted but show all
   let html = '';
   mems.forEach((m, i) => {
     const initials = m.name.split(' ').map(n=>n[0]).join('').toUpperCase();
@@ -1410,16 +1601,14 @@ function renderMemberList(branchId, centreId) {
     const loanInfo = !m.loan ? 'No loan yet' : m.status === 'completed' ? 'Loan repaid' : 'Loan active';
     html += `<div class="list-item" data-status="${m.status}" onclick="showMemberDetail('${m.name}','${m.id}','${m.centre}','${m.status}','${m.branch}')">
       <div class="list-avatar" style="background:${avBg};color:#fff">${initials}</div>
-      <div class="list-info"><div class="list-name">${m.name}</div><div class="list-sub">${m.id} · ${loanInfo}</div></div>
+      <div class="list-info"><div class="list-name">${m.name}</div><div class="list-sub">${m.id} � ${loanInfo}</div></div>
       <div class="list-right"><div class="list-badge ${badgeClass}">${statusLabel}</div></div>
     </div>`;
   });
   if (!html) html = '<div style="padding:24px;text-align:center;color:var(--text3)">No members in this centre</div>';
   document.getElementById('member-list-container').innerHTML = html;
-  // reset filter to 'all'
   document.querySelectorAll('#member-filter-row .filter-chip').forEach((c,i) => c.className = 'filter-chip' + (i===0?' active':''));
 }
-
 function filterByStatus(el, status) {
   document.querySelectorAll('#member-filter-row .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
@@ -1452,16 +1641,23 @@ function filterLoans(q) {
 function renderLoansList() {
   const container = document.getElementById('loan-list-container');
   if (!container) return;
-  const loans = MEMBERS.filter(m => m.loan).filter(m => loanFilterStatus ? m.status === loanFilterStatus : true);
+  const scopeBranch = getScopeBranchId();
+  const loans = MEMBERS
+    .filter(m => m.loan)
+    .filter(m => !scopeBranch || m.branch === scopeBranch)
+    .filter(m => loanFilterStatus ? m.status === loanFilterStatus : true);
+
   const filtered = loans.filter(m => {
     if (!loanFilterQuery) return true;
     const hay = `${m.name} ${m.id}`.toLowerCase();
     return hay.includes(loanFilterQuery);
   });
+
   if (filtered.length === 0) {
     container.innerHTML = '<div style="padding:18px 0;text-align:center;color:var(--text3)">No loans found for selected filter</div>';
     return;
   }
+
   container.innerHTML = filtered.map((m, i) => {
     const initials = m.name.split(' ').map(n=>n[0]).join('').toUpperCase();
     const avBg = AVATARS[i % AVATARS.length];
@@ -1469,19 +1665,22 @@ function renderLoansList() {
     const badgeClass = m.status === 'active' ? 'badge-green' : m.status === 'overdue' ? 'badge-red' : 'badge-gray';
     const amountClass = m.status === 'overdue' ? 'text-red' : m.status === 'completed' ? 'text-green' : 'text-gold';
     const statusLabel = m.status.charAt(0).toUpperCase() + m.status.slice(1);
-    const sub = `${m.branch} · ${m.centre} · ${m.loan.emiStart || m.loan.date} · ${m.loan.dur} wk`;
+    const sub = `${m.branch} � ${m.centre} � ${m.loan.emiStart || m.loan.date} � ${m.loan.dur} wk`;
     return `<div class="list-item" onclick="showMemberDetail('${m.name}','${m.id}','${m.centre}','${m.status}','${m.branch}')">
       <div class="list-avatar" style="background:${avBg};color:#fff">${initials}</div>
-      <div class="list-info"><div class="list-name">${m.name} · ${m.id}</div><div class="list-sub">${sub}</div></div>
+      <div class="list-info"><div class="list-name">${m.name} � ${m.id}</div><div class="list-sub">${sub}</div></div>
       <div class="list-right"><div class="list-amount ${amountClass}">Rs ${total.toFixed(0)}</div><div class="list-badge ${badgeClass}">${statusLabel}</div></div>
     </div>`;
   }).join('');
 }
-
 // ══════════════ MEMBER DETAIL ══════════════
 function showMemberDetail(name, mid, centre, status, branch) {
-  lastMemberCtx = {name, mid, centre, status, branch};
   const m = MEMBERS.find(x => x.id === mid);
+  if (!canAccessMember(m)) {
+    showToast('Access denied for this member');
+    return;
+  }
+  lastMemberCtx = {name, mid, centre, status, branch};
   const loan = m ? m.loan : {principal:10000,rate:12,dur:24,date:'01 Jan 2026',emiStart:'08 Jan 2026',notes:''};
 
   const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase();
@@ -1627,6 +1826,14 @@ function confirmEmiPaid() {
 }
 
 // ══════════════ GIVE LOAN ══════════════
+function populateLoanMemberOptions() {
+  const sel = document.getElementById('loan-member');
+  if (!sel) return;
+  const scopeBranch = getScopeBranchId();
+  const eligible = MEMBERS.filter(m => !scopeBranch || m.branch === scopeBranch);
+  sel.innerHTML = '<option value="">Select member...</option>' + eligible.map(m => `<option value="${m.id}">${m.name} - ${m.id} � ${m.centre} � ${m.branch}</option>`).join('');
+}
+
 function calcLoanPreview() {
   const P = parseFloat(document.getElementById('loan-principal').value) || 0;
   const R = parseFloat(document.getElementById('loan-rate').value) || 12;
@@ -1659,6 +1866,10 @@ function submitLoan() {
     showToast('Please fill all required fields'); return;
   }
   const m = MEMBERS.find(x => x.id === member);
+  if (!canAccessMember(m)) {
+    showToast('You can only create loans for your branch members');
+    return;
+  }
   if (m) {
     m.loan = {
       principal: parseFloat(principal),
@@ -1684,7 +1895,8 @@ function updateMemCentreOptions() {
   const branch = document.getElementById('mem-branch').value;
   const sel = document.getElementById('mem-centre');
   sel.innerHTML = '';
-  if (!branch) { sel.innerHTML = '<option>Select branch first…</option>'; return; }
+  if (!branch) { sel.innerHTML = '<option>Select branch first...</option>'; return; }
+  if (!canAccessBranch(branch)) { sel.innerHTML = '<option>Access denied</option>'; return; }
   BRANCHES[branch].centres.forEach(cid => {
     sel.innerHTML += `<option value="${cid}">${cid} — ${CENTRES[cid].name}</option>`;
   });
@@ -1699,6 +1911,10 @@ function submitMember() {
   const aadhar= document.getElementById('mem-aadhar').value.trim();
   if (!name || !phone || !area || !branch || !centre || !aadhar) {
     showToast('Please fill all required fields'); return;
+  }
+  if (!canAccessBranch(branch)) {
+    showToast('You can only add members in your branch');
+    return;
   }
   const existingNums = MEMBERS.map(m => parseInt(m.id.replace('M',''),10)).filter(n=>!isNaN(n));
   const maxNum = existingNums.length ? Math.max(...existingNums) : 0;
@@ -1971,6 +2187,8 @@ function resetDemoData() {
   activeQrId = QR_CODES[0] ? QR_CODES[0].id : null;
   pendingEmiIdx = null;
   renderStaffList();
+  renderBranchList();
+  renderReportsSummary();
   renderQrCodes();
   renderLoansList();
   if (currentPage === 'member-detail' && lastMemberCtx) {
@@ -1990,7 +2208,7 @@ function switchTab(el) {
 }
 
 // ══════════════ MODALS ══════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+function openModal(id) { if (id === 'modal-give-loan') populateLoanMemberOptions(); document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
 function closeModalBackdrop(e, el) { if (e.target === el) { el.classList.remove('open'); document.body.style.overflow = ''; } }
 
@@ -2016,11 +2234,32 @@ window.onload = () => {
   const nextWeek = new Date(now); nextWeek.setDate(now.getDate()+7);
   const loanEmiStart = document.getElementById('loan-emi-start');
   if (loanEmiStart) loanEmiStart.value = nextWeek.toISOString().split('T')[0];
+  renderBranchList();
+  renderReportsSummary();
+  populateLoanMemberOptions();
   renderLoansList();
 };
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
