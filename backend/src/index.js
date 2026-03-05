@@ -21,7 +21,7 @@ const localDefaultOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
 const envOrigins = [process.env.FRONTEND_URL || '', process.env.FRONTEND_URLS || '']
   .join(',')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 const allowedOrigins = new Set(envOrigins.length > 0 ? envOrigins : localDefaultOrigins);
 
@@ -37,7 +37,9 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow server-to-server or curl-like requests without Origin header.
     if (!origin) return callback(null, true);
-    if (allowedOrigins.has(origin)) return callback(null, true);
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+    if (allowedOrigins.has(normalizedOrigin)) return callback(null, true);
+    if (/^https:\/\/[-a-zA-Z0-9]+\.vercel\.app$/.test(normalizedOrigin)) return callback(null, true);
     return callback(new Error('CORS blocked: origin not allowed'));
   },
   credentials: true,
