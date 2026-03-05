@@ -1,6 +1,6 @@
 # LoanFlow — Loan Management System
 
-A premium full-stack loan management platform for microfinance operations with role-based access control. 
+A premium full-stack loan management platform for microfinance operations with role-based access control.  
 
 ## Tech Stack
 
