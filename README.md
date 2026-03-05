@@ -1,11 +1,11 @@
 # LoanFlow — Loan Management System
 
-A premium full-stack loan management platform for microfinance operations with role-based access control.
+A premium full-stack loan management platform for microfinance operations with role-based access control.  
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+|-------|-----------| 
 | Frontend | Next.js 14 + Tailwind CSS + Shadcn UI |
 | Backend | Node.js + Express |
 | Database | PostgreSQL + Prisma ORM |
