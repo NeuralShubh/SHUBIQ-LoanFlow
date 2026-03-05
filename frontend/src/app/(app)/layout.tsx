@@ -82,6 +82,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <aside className="hidden lg:flex lg:w-64 xl:w-72 border-r border-border bg-card/70 backdrop-blur-sm">
+        <div className="w-full p-4 flex flex-col">
+          <div className="flex items-center gap-3 px-2 py-2 mb-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.35)]">
+              <Landmark className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-lg font-bold text-white leading-none">LoanFlow</div>
+              <div className="text-[11px] text-slate-500 mt-1 uppercase tracking-wider">{user.role}</div>
+            </div>
+          </div>
+
+          <nav className="space-y-1.5">
+            {nav.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(href + '/')
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    active
+                      ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
+                      : 'text-slate-400 hover:text-white hover:bg-muted/60 border border-transparent'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span>{label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+      </aside>
+
       <main className="flex-1 flex flex-col min-h-screen min-w-0">
         <header className="sticky top-0 z-40 px-2 sm:px-3 lg:px-4 pt-safe">
           <div className="h-[60px] rounded-2xl border border-blue-500/20 bg-gradient-to-r from-slate-950/95 via-blue-950/40 to-slate-950/95 shadow-[0_10px_24px_rgba(2,6,23,0.45)] backdrop-blur-xl px-3 sm:px-4 flex items-center gap-3">
