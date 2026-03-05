@@ -42,25 +42,25 @@ A premium full-stack loan management platform for microfinance operations with r
 
 ```
 loanflow/
-├── frontend/           # Next.js app
+├── frontend/          
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── login/          # Login page
-│   │   │   └── (app)/          # Protected routes
+│   │   │   ├── login/          
+│   │   │   └── (app)/          
 │   │   │       ├── dashboard/
 │   │   │       ├── members/
 │   │   │       ├── loans/
 │   │   │       ├── reports/
 │   │   │       └── settings/
 │   │   ├── lib/
-│   │   │   ├── api.ts          # All API calls
-│   │   │   └── utils.ts        # Helpers
+│   │   │   ├── api.ts          
+│   │   │   └── utils.ts        
 │   │   └── store/
-│   │       └── auth.ts         # Zustand auth store
+│   │       └── auth.ts       
 │   └── package.json
 └── backend/
     ├── prisma/
-    │   └── schema.prisma       # DB schema
+    │   └── schema.prisma       
     ├── src/
     │   ├── middleware/auth.js
     │   ├── routes/
