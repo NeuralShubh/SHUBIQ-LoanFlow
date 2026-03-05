@@ -1,1 +1,5 @@
-export { default } from './dashboard/page'
+'use client'
+
+import DashboardPage from './dashboard/page'
+
+export default DashboardPage
