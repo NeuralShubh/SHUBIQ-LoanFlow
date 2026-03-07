@@ -92,3 +92,32 @@ loanflow/
 
 ## License
 SHUBIQ
+
+---
+
+## Production Deploy (Render + Vercel + Supabase)
+
+### Render (Backend)
+- Root directory: `backend`
+- Build command: `npm install && npm run db:generate`
+- Start command: `npm start`
+- Health check path: `/api/health`
+
+Do not run `npm run db:push` in the start command.
+
+### Required Render Environment Variables
+- `NODE_ENV=production`
+- `FRONTEND_URL=https://shubiq-loanflow.vercel.app`
+- `FRONTEND_URLS=https://shubiq-loanflow.vercel.app,https://www.shubiq-loanflow.vercel.app`
+- `JWT_SECRET=<32+ char secret>`
+- `DATABASE_URL=<Supabase pooling URL on port 6543>`
+
+Example `DATABASE_URL` format:
+`postgresql://postgres.<project_ref>:<password>@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1`
+
+### Vercel (Frontend)
+- `NEXT_PUBLIC_API_URL=https://shubiq-loanflow-api.onrender.com/api`
+
+### One-time Database Setup (run manually in Render Shell)
+1. `npm run db:push`
+2. `npm run db:seed`
