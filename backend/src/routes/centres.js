@@ -113,8 +113,7 @@ router.delete('/:id', authenticate, async (req, res) => {
       include: {
         _count: {
           select: {
-            members: { where: { isActive: true } },
-            loans: { where: { status: { in: ['ACTIVE', 'OVERDUE'] } } },
+            members: true,
           },
         },
       },
@@ -125,21 +124,9 @@ router.delete('/:id', authenticate, async (req, res) => {
     const canManage = req.user.role === 'ADMIN' || centre.createdById === req.user.id;
     if (!canManage) return res.status(403).json({ error: 'Only creator or admin can delete this centre' });
 
-    const hasActiveData = (centre._count.members || 0) > 0 || (centre._count.loans || 0) > 0;
-
-    // Admin can always delete from panel; backend will purge related transactional data.
-    if (req.user.role === 'ADMIN') {
-      await prisma.$transaction(async (tx) => {
-        await tx.emiPayment.deleteMany({ where: { loan: { centreId: centre.id } } });
-        await tx.loan.deleteMany({ where: { centreId: centre.id } });
-        await tx.member.deleteMany({ where: { centreId: centre.id } });
-        await tx.centre.update({ where: { id: centre.id }, data: { isActive: false } });
-      });
-      return res.json({ message: 'Centre deleted with related data purge' });
-    }
-
-    if (hasActiveData) {
-      return res.status(400).json({ error: 'Centre must be empty before delete' });
+    const hasMembers = (centre._count.members || 0) > 0;
+    if (hasMembers) {
+      return res.status(400).json({ error: 'Centre must have no members before delete' });
     }
 
     await prisma.centre.update({ where: { id: centre.id }, data: { isActive: false } });

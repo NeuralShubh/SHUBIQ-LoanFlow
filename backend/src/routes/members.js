@@ -166,7 +166,7 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
-// DELETE /api/members/:id (soft delete)
+// DELETE /api/members/:id (hard delete with related records)
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const where = { id: req.params.id, isActive: true };
@@ -175,10 +175,14 @@ router.delete('/:id', authenticate, async (req, res) => {
     const existing = await prisma.member.findFirst({ where, select: { id: true } });
     if (!existing) return res.status(404).json({ error: 'Member not found' });
 
-    await prisma.member.update({ where: { id: existing.id }, data: { isActive: false } });
-    res.json({ message: 'Member deactivated' });
+    await prisma.$transaction(async (tx) => {
+      await tx.emiPayment.deleteMany({ where: { loan: { memberId: existing.id } } });
+      await tx.loan.deleteMany({ where: { memberId: existing.id } });
+      await tx.member.delete({ where: { id: existing.id } });
+    });
+    res.json({ message: 'Member deleted with related data' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to deactivate member' });
+    res.status(500).json({ error: 'Failed to delete member' });
   }
 });
 

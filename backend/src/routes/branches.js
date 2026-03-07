@@ -134,8 +134,6 @@ router.delete('/:id', authenticate, async (req, res) => {
         _count: {
           select: {
             centres: { where: { isActive: true } },
-            members: { where: { isActive: true } },
-            loans: { where: { status: { in: ['ACTIVE', 'OVERDUE'] } } },
           },
         },
       },
@@ -146,24 +144,9 @@ router.delete('/:id', authenticate, async (req, res) => {
     const canManage = req.user.role === 'ADMIN' || branch.createdById === req.user.id;
     if (!canManage) return res.status(403).json({ error: 'Only creator or admin can delete this branch' });
 
-    const hasActiveData =
-      (branch._count.centres || 0) > 0 || (branch._count.members || 0) > 0 || (branch._count.loans || 0) > 0;
-
-    // Admin can always delete from panel; backend will purge related transactional data.
-    if (req.user.role === 'ADMIN') {
-      await prisma.$transaction(async (tx) => {
-        await tx.emiPayment.deleteMany({ where: { loan: { branchId: branch.id } } });
-        await tx.loan.deleteMany({ where: { branchId: branch.id } });
-        await tx.member.deleteMany({ where: { branchId: branch.id } });
-        await tx.centre.updateMany({ where: { branchId: branch.id }, data: { isActive: false } });
-        await tx.user.updateMany({ where: { branchId: branch.id }, data: { branchId: null } });
-        await tx.branch.update({ where: { id: branch.id }, data: { isActive: false } });
-      });
-      return res.json({ message: 'Branch deleted with related data purge' });
-    }
-
-    if (hasActiveData) {
-      return res.status(400).json({ error: 'Branch must be empty before delete' });
+    const hasCentres = (branch._count.centres || 0) > 0;
+    if (hasCentres) {
+      return res.status(400).json({ error: 'Branch must have no active centres before delete' });
     }
 
     await prisma.branch.update({ where: { id: branch.id }, data: { isActive: false } });

@@ -100,10 +100,7 @@ export default function MembersPage() {
 
   const handleDeleteBranch = async (branch: any) => {
     if (!canManageEntity(branch)) return
-    const msg =
-      user?.role === 'ADMIN'
-        ? 'Delete this branch and all related data (members, loans, EMI records)?'
-        : 'Delete this branch? It must be empty.'
+    const msg = 'Delete this branch? It must have no active centres.'
     if (!confirm(msg)) return
     try {
       await deleteBranch(branch.id)
@@ -120,10 +117,7 @@ export default function MembersPage() {
 
   const handleDeleteCentre = async (centre: any) => {
     if (!canManageEntity(centre)) return
-    const msg =
-      user?.role === 'ADMIN'
-        ? 'Delete this centre and all related data (members, loans, EMI records)?'
-        : 'Delete this centre? It must be empty.'
+    const msg = 'Delete this centre? It must have no members.'
     if (!confirm(msg)) return
     try {
       await deleteCentre(centre.id)
