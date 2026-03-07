@@ -42,7 +42,7 @@ router.put('/profile', authenticate, async (req, res) => {
 router.get('/staff', authenticate, requireAdmin, async (req, res) => {
   try {
     const staff = await prisma.user.findMany({
-      where: { role: 'STAFF' },
+      where: { role: 'STAFF', isActive: true },
       include: { branch: true },
       orderBy: { createdAt: 'desc' },
     });
