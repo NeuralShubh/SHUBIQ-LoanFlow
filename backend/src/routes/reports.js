@@ -65,15 +65,7 @@ router.get('/export/excel', authenticate, async (req, res) => {
       sheet.views = [{ state: 'frozen', ySplit: 1 }];
     };
 
-    const addSummary = (rowsCount) => {
-      addSheet('Summary', [
-        { metric: 'Generated At (UTC)', value: new Date().toISOString() },
-        { metric: 'Report Type', value: reportType.toUpperCase() },
-        { metric: 'From', value: from || 'N/A' },
-        { metric: 'To', value: to || 'N/A' },
-        { metric: 'Rows', value: rowsCount },
-      ]);
-    };
+    const summaryStats = [];
 
     if (reportType === 'loans' || reportType === 'all') {
       const loanWhere = { ...baseFilter };
@@ -110,8 +102,8 @@ router.get('/export/excel', authenticate, async (req, res) => {
         status: l.status,
       }));
 
-      addSummary(loanRows.length);
       addSheet('Loans', loanRows);
+      summaryStats.push({ section: 'Loans', rows: loanRows.length });
     }
 
     if (reportType === 'emi' || reportType === 'all') {
@@ -154,8 +146,8 @@ router.get('/export/excel', authenticate, async (req, res) => {
         paymentMethod: e.paymentMethod || '',
       }));
 
-      addSummary(emiRows.length);
       addSheet('EMIs', emiRows);
+      summaryStats.push({ section: 'EMIs', rows: emiRows.length });
     }
 
     if (reportType === 'members' || reportType === 'all') {
@@ -187,8 +179,8 @@ router.get('/export/excel', authenticate, async (req, res) => {
         createdAt: toDateCell(m.createdAt),
       }));
 
-      addSummary(memberRows.length);
       addSheet('Members', memberRows);
+      summaryStats.push({ section: 'Members', rows: memberRows.length });
     }
 
     if (reportType === 'branch' || reportType === 'all') {
@@ -226,8 +218,8 @@ router.get('/export/excel', authenticate, async (req, res) => {
         };
       }));
 
-      addSummary(branchRows.length);
       addSheet('Branch', branchRows);
+      summaryStats.push({ section: 'Branch', rows: branchRows.length });
     }
 
     if (reportType === 'staff' || reportType === 'all') {
@@ -253,13 +245,22 @@ router.get('/export/excel', authenticate, async (req, res) => {
         totalCollected: s.loans.reduce((sum, l) => sum + l.emis.filter((e) => e.status === 'PAID').reduce((a, e) => a + (e.paidAmount || 0), 0), 0),
       }));
 
-      addSummary(staffRows.length);
       addSheet('Staff', staffRows);
+      summaryStats.push({ section: 'Staff', rows: staffRows.length });
     }
 
     if (workbook.worksheets.length === 0) {
-      addSheet('Summary', [{ metric: 'Message', value: 'No data for selected filters' }]);
+      addSheet('Data', [{ message: 'No data for selected filters' }]);
+      summaryStats.push({ section: 'Data', rows: 0 });
     }
+
+    addSheet('Summary', [
+      { metric: 'Generated At (UTC)', value: new Date().toISOString() },
+      { metric: 'Report Type', value: reportType.toUpperCase() },
+      { metric: 'From', value: from || 'N/A' },
+      { metric: 'To', value: to || 'N/A' },
+      ...summaryStats.map((s) => ({ metric: `${s.section} Rows`, value: s.rows })),
+    ]);
 
     const fileBuffer = await workbook.xlsx.writeBuffer();
     const dateTag = new Date().toISOString().slice(0, 10);
