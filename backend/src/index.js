@@ -24,6 +24,8 @@ const envOrigins = [process.env.FRONTEND_URL || '', process.env.FRONTEND_URLS ||
   .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 const allowedOrigins = new Set(envOrigins.length > 0 ? envOrigins : localDefaultOrigins);
+const vercelOriginPattern = /^https:\/\/[-a-zA-Z0-9]+\.vercel\.app$/;
+const localOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 if (
   process.env.NODE_ENV === 'production' &&
@@ -39,8 +41,13 @@ app.use(cors({
     if (!origin) return callback(null, true);
     const normalizedOrigin = origin.replace(/\/+$/, '');
     if (allowedOrigins.has(normalizedOrigin)) return callback(null, true);
-    if (/^https:\/\/[-a-zA-Z0-9]+\.vercel\.app$/.test(normalizedOrigin)) return callback(null, true);
-    return callback(new Error('CORS blocked: origin not allowed'));
+    if (vercelOriginPattern.test(normalizedOrigin)) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' && localOriginPattern.test(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`CORS blocked origin: ${normalizedOrigin}`);
+    return callback(null, false);
   },
   credentials: true,
 }));
@@ -70,6 +77,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`LoanFlow API running on port ${PORT}`);
+  console.log(`Allowed CORS origins: ${Array.from(allowedOrigins).join(', ')}`);
 
   // Run once on boot so overdue status is corrected immediately.
   syncOverdueStatuses(prisma)
