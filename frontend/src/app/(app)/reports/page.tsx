@@ -10,10 +10,11 @@ import {
   getCentres,
   getMemberReport,
   getCentreSummary,
+  exportReportsExcel,
 } from '@/lib/api'
 import { formatCurrencyFull, formatCurrency, formatDate, getLoanStatusColor, getEmiStatusColor } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
-import { BarChart3, Filter, ChevronDown } from 'lucide-react'
+import { BarChart3, Filter, ChevronDown, FileSpreadsheet } from 'lucide-react'
 import { Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
 
@@ -38,6 +39,7 @@ export default function ReportsPage() {
   const [staffSummary, setStaffSummary] = useState<any[]>([])
 
   const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     getBranches().then(r => setBranches(r.data))
@@ -79,6 +81,40 @@ export default function ReportsPage() {
   useEffect(() => {
     generateReport()
   }, [activeTab])
+
+  const handleExportExcel = async () => {
+    if (!filters.from || !filters.to) {
+      alert('Please select both start date and end date before export.')
+      return
+    }
+    if (new Date(filters.from) > new Date(filters.to)) {
+      alert('Start date cannot be after end date.')
+      return
+    }
+
+    setExporting(true)
+    try {
+      const params = { ...filters }
+      const response = await exportReportsExcel(params)
+      const blob = new Blob(
+        [response.data],
+        { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+      )
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      const tag = new Date().toISOString().slice(0, 10)
+      link.download = `loanflow-report-${tag}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+    } catch (error: any) {
+      alert(error?.response?.data?.error || 'Failed to export Excel')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   useEffect(() => {
     const allowedStatus =
@@ -220,9 +256,18 @@ export default function ReportsPage() {
             </div>
           </div>
         </div>
-        <button onClick={generateReport} className="w-full mt-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2">
-          <BarChart3 className="w-4 h-4" /> Generate Report
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+          <button onClick={generateReport} className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2">
+            <BarChart3 className="w-4 h-4" /> Generate Report
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> {exporting ? 'Exporting...' : 'Export Excel'}
+          </button>
+        </div>
       </div>
 
       {loading ? (

@@ -110,6 +110,12 @@ export const getBranchSummary = (params?: any) => api.get('/reports/branch-summa
 export const getStaffSummary = (params?: any) => api.get('/reports/staff-summary', { params })
 export const getMemberReport = (params?: any) => api.get('/reports/members', { params })
 export const getCentreSummary = (params?: any) => api.get('/reports/centre-summary', { params })
+export const exportReportsExcel = (params?: any) =>
+  api.get('/reports/export/excel', {
+    params,
+    responseType: 'blob',
+    timeout: 120000,
+  })
 
 // Settings
 export const getStaff = () => api.get('/settings/staff')

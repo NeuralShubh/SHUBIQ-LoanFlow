@@ -1,4 +1,5 @@
-﻿const express = require('express');
+const express = require('express');
+const ExcelJS = require('exceljs');
 const prisma = require('../lib/prisma');
 const { authenticate, applyBranchFilter } = require('../middleware/auth');
 
@@ -8,6 +9,186 @@ const LOAN_STATUSES = new Set(['ACTIVE', 'OVERDUE', 'COMPLETED', 'CANCELLED']);
 const EMI_STATUSES = new Set(['PENDING', 'PAID', 'OVERDUE', 'PARTIAL']);
 const MEMBER_STATUSES = new Set(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
 
+
+function normalizeDateRange(from, to) {
+  const range = {};
+  if (from) {
+    const fromDate = new Date(from);
+    if (Number.isNaN(fromDate.getTime())) throw new Error('Invalid from date');
+    range.gte = fromDate;
+  }
+  if (to) {
+    const toDate = new Date(`${to}T23:59:59.999`);
+    if (Number.isNaN(toDate.getTime())) throw new Error('Invalid to date');
+    range.lte = toDate;
+  }
+  if (range.gte && range.lte && range.gte > range.lte) throw new Error('From date cannot be after to date');
+  return range;
+}
+
+function toDateCell(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+// GET /api/reports/export/excel
+router.get('/export/excel', authenticate, async (req, res) => {
+  try {
+    const { from, to, branchId, centreId, status } = req.query;
+    const baseFilter = {
+      ...applyBranchFilter(req),
+      ...(req.user.role === 'STAFF' ? { staffId: req.user.id } : {}),
+    };
+
+    const dateRange = normalizeDateRange(from, to);
+
+    const loanWhere = { ...baseFilter };
+    if (branchId) loanWhere.branchId = branchId;
+    if (centreId) loanWhere.centreId = centreId;
+    const normalizedLoanStatus = String(status || '').toUpperCase();
+    if (normalizedLoanStatus && LOAN_STATUSES.has(normalizedLoanStatus)) loanWhere.status = normalizedLoanStatus;
+    if (dateRange.gte || dateRange.lte) loanWhere.loanDate = dateRange;
+
+    const memberWhere = { isActive: true, ...baseFilter };
+    if (branchId) memberWhere.branchId = branchId;
+    if (centreId) memberWhere.centreId = centreId;
+    if (dateRange.gte || dateRange.lte) memberWhere.createdAt = dateRange;
+
+    const emiWhere = { loan: { ...baseFilter } };
+    if (branchId) emiWhere.loan.branchId = branchId;
+    if (centreId) emiWhere.loan.centreId = centreId;
+    const normalizedEmiStatus = String(status || '').toUpperCase();
+    if (normalizedEmiStatus && EMI_STATUSES.has(normalizedEmiStatus)) emiWhere.status = normalizedEmiStatus;
+    if (dateRange.gte || dateRange.lte) emiWhere.dueDate = dateRange;
+
+    const [loans, members, emis] = await Promise.all([
+      prisma.loan.findMany({
+        where: loanWhere,
+        include: {
+          member: true,
+          branch: true,
+          centre: true,
+          staff: { select: { name: true } },
+          emis: true,
+        },
+        orderBy: { loanDate: 'desc' },
+      }),
+      prisma.member.findMany({
+        where: memberWhere,
+        include: {
+          branch: true,
+          centre: true,
+          staff: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.emiPayment.findMany({
+        where: emiWhere,
+        include: {
+          loan: {
+            include: {
+              member: true,
+              branch: true,
+              centre: true,
+              staff: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { dueDate: 'desc' },
+      }),
+    ]);
+
+    const summaryRows = [
+      { metric: 'Generated At (UTC)', value: new Date().toISOString() },
+      { metric: 'From', value: from || 'N/A' },
+      { metric: 'To', value: to || 'N/A' },
+      { metric: 'Total Loans', value: loans.length },
+      { metric: 'Total Members', value: members.length },
+      { metric: 'Total EMI Rows', value: emis.length },
+      { metric: 'Total Disbursed', value: loans.reduce((sum, l) => sum + l.principal, 0) },
+      { metric: 'Total Payable', value: loans.reduce((sum, l) => sum + l.totalPayable, 0) },
+      { metric: 'Total Collected', value: loans.reduce((sum, l) => sum + l.emis.filter((e) => e.status === 'PAID').reduce((a, e) => a + (e.paidAmount || 0), 0), 0) },
+    ];
+
+    const loanRows = loans.map((l) => ({
+      loanId: l.loanId,
+      loanDate: toDateCell(l.loanDate),
+      memberId: l.member?.memberId || '',
+      memberName: l.member?.name || '',
+      branch: `${l.branch?.code || ''} ${l.branch?.name || ''}`.trim(),
+      centre: `${l.centre?.code || ''} ${l.centre?.name || ''}`.trim(),
+      staff: l.staff?.name || '',
+      principal: l.principal,
+      interestRate: l.interestRate,
+      durationWeeks: l.durationWeeks,
+      totalPayable: l.totalPayable,
+      weeklyEmi: l.weeklyEmi,
+      status: l.status,
+    }));
+
+    const memberRows = members.map((m) => ({
+      memberId: m.memberId,
+      name: m.name,
+      phone: m.phone,
+      branch: `${m.branch?.code || ''} ${m.branch?.name || ''}`.trim(),
+      centre: `${m.centre?.code || ''} ${m.centre?.name || ''}`.trim(),
+      staff: m.staff?.name || '',
+      status: m.status,
+      createdAt: toDateCell(m.createdAt),
+    }));
+
+    const emiRows = emis.map((e) => ({
+      emiId: e.id,
+      loanId: e.loan?.loanId || '',
+      emiNumber: e.emiNumber,
+      dueDate: toDateCell(e.dueDate),
+      paidDate: toDateCell(e.paidDate),
+      memberId: e.loan?.member?.memberId || '',
+      memberName: e.loan?.member?.name || '',
+      branch: `${e.loan?.branch?.code || ''} ${e.loan?.branch?.name || ''}`.trim(),
+      centre: `${e.loan?.centre?.code || ''} ${e.loan?.centre?.name || ''}`.trim(),
+      staff: e.loan?.staff?.name || '',
+      amount: e.amount,
+      paidAmount: e.paidAmount || 0,
+      status: e.status,
+      paymentMethod: e.paymentMethod || '',
+    }));
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.created = new Date();
+
+    const addSheet = (name, rows) => {
+      const sheet = workbook.addWorksheet(name);
+      if (!rows.length) {
+        sheet.addRow(['No data']);
+        return;
+      }
+      const headers = Object.keys(rows[0]).map((key) => ({ header: key, key, width: 20 }));
+      sheet.columns = headers;
+      rows.forEach((row) => sheet.addRow(row));
+      sheet.getRow(1).font = { bold: true };
+      sheet.views = [{ state: 'frozen', ySplit: 1 }];
+    };
+
+    addSheet('Summary', summaryRows);
+    addSheet('Loans', loanRows);
+    addSheet('Members', memberRows);
+    addSheet('EMIs', emiRows);
+
+    const fileBuffer = await workbook.xlsx.writeBuffer();
+    const dateTag = new Date().toISOString().slice(0, 10);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="loanflow-report-${dateTag}.xlsx"`);
+    res.send(fileBuffer);
+  } catch (error) {
+    const message = error.message || 'Failed to export report';
+    const statusCode = message.toLowerCase().includes('date') ? 400 : 500;
+    res.status(statusCode).json({ error: message });
+  }
+});
 
 // GET /api/reports/loans
 router.get('/loans', authenticate, async (req, res) => {
@@ -304,4 +485,5 @@ router.get('/centre-summary', authenticate, async (req, res) => {
 });
 
 module.exports = router;
+
 
