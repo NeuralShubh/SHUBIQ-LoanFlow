@@ -28,10 +28,8 @@ interface Stats {
   todayDueEmis: any[]
   storage?: {
     usedBytes: number
-    limitBytes: number
     usedMB: number
-    limitMB: number
-    percentUsed: number
+    usedGB: number
   } | null
 }
 
@@ -277,17 +275,12 @@ export default function DashboardPage() {
 
       {user?.role === 'ADMIN' && stats?.storage && (
         <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Database Usage (Supabase Free)</h3>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Database Usage (PostgreSQL)</h3>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-slate-300">{stats.storage.usedMB.toFixed(2)} MB / {stats.storage.limitMB} MB</span>
-            <span className="text-sm font-bold font-mono text-blue-400">{stats.storage.percentUsed.toFixed(2)}%</span>
+            <span className="text-sm text-slate-300">{stats.storage.usedMB.toFixed(2)} MB</span>
+            <span className="text-sm font-bold font-mono text-blue-400">{stats.storage.usedGB.toFixed(3)} GB</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 progress-animated"
-              style={{ width: `${Math.min(stats.storage.percentUsed, 100)}%` }}
-            />
-          </div>
+          <p className="text-xs text-slate-500">Current database size in this VPS PostgreSQL instance.</p>
         </div>
       )}
 

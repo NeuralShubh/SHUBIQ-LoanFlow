@@ -125,13 +125,10 @@ router.get('/stats', authenticate, async (req, res) => {
     if (req.user.role === 'ADMIN') {
       const sizeResult = await prisma.$queryRaw`SELECT pg_database_size(current_database()) AS size_bytes`;
       const usedBytes = Number(sizeResult?.[0]?.size_bytes || 0);
-      const limitBytes = 500 * 1024 * 1024;
       storage = {
         usedBytes,
-        limitBytes,
         usedMB: Number((usedBytes / (1024 * 1024)).toFixed(2)),
-        limitMB: 500,
-        percentUsed: Number(((usedBytes / limitBytes) * 100).toFixed(2)),
+        usedGB: Number((usedBytes / (1024 * 1024 * 1024)).toFixed(3)),
       };
     }
 
