@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
+const DEMO_STAFF_PASSWORD = process.env.DEMO_STAFF_PASSWORD || '';
 
 function calcLoan(principal, rate, weeks, feeRate = 2) {
   const interest = (principal * rate * (weeks / 52)) / 100;
@@ -74,7 +75,7 @@ async function getOrCreateStaff(name, email, phone, branchId) {
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) return existing;
 
-  const hash = await bcrypt.hash('Demo@12345', 10);
+  const hash = await bcrypt.hash(DEMO_STAFF_PASSWORD, 10);
   return prisma.user.create({
     data: {
       name,
@@ -176,6 +177,10 @@ async function createDemoLoan(member, staffId, config) {
 }
 
 async function main() {
+  if (!DEMO_STAFF_PASSWORD || DEMO_STAFF_PASSWORD.length < 8) {
+    throw new Error('DEMO_STAFF_PASSWORD is required and must be at least 8 characters.');
+  }
+
   console.log('Seeding demo business data...');
 
   const admin = await ensureAdmin();
@@ -282,9 +287,6 @@ async function main() {
   });
 
   console.log('Demo seed complete.');
-  console.log('Demo staff credentials:');
-  console.log('demo.staff1@loanflow.com / Demo@12345');
-  console.log('demo.staff2@loanflow.com / Demo@12345');
 }
 
 main()
