@@ -135,7 +135,7 @@ router.delete('/:id', authenticate, async (req, res) => {
           select: {
             centres: { where: { isActive: true } },
             members: { where: { isActive: true } },
-            loans: true,
+            loans: { where: { status: { in: ['ACTIVE', 'OVERDUE'] } } },
           },
         },
       },
@@ -148,7 +148,9 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const isEmpty = (branch._count.centres || 0) === 0 && (branch._count.members || 0) === 0 && (branch._count.loans || 0) === 0;
     if (!isEmpty) {
-      return res.status(400).json({ error: 'Branch must be empty (no centres, members, or loans) before delete' });
+      return res.status(400).json({
+        error: 'Branch must have no active centres, no active members, and no active/overdue loans before delete',
+      });
     }
 
     await prisma.branch.update({ where: { id: branch.id }, data: { isActive: false } });

@@ -114,7 +114,7 @@ router.delete('/:id', authenticate, async (req, res) => {
         _count: {
           select: {
             members: { where: { isActive: true } },
-            loans: true,
+            loans: { where: { status: { in: ['ACTIVE', 'OVERDUE'] } } },
           },
         },
       },
@@ -127,7 +127,9 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const isEmpty = (centre._count.members || 0) === 0 && (centre._count.loans || 0) === 0;
     if (!isEmpty) {
-      return res.status(400).json({ error: 'Centre must be empty (no members or loans) before delete' });
+      return res.status(400).json({
+        error: 'Centre must have no active members and no active/overdue loans before delete',
+      });
     }
 
     await prisma.centre.update({ where: { id: centre.id }, data: { isActive: false } });
