@@ -113,7 +113,7 @@ router.delete('/:id', authenticate, async (req, res) => {
       include: {
         _count: {
           select: {
-            members: true,
+            members: { where: { isActive: true } },
           },
         },
       },
