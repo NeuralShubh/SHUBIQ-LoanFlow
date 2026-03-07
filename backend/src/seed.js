@@ -51,7 +51,7 @@ async function main() {
     console.log(`Created admin account: ${adminEmail}`);
   }
 
-  console.log('Seed completed without demo/staff/sample records.');
+  console.log('Seed completed with production admin bootstrap only.');
 }
 
 main()
