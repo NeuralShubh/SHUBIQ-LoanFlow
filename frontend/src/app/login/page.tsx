@@ -192,7 +192,7 @@ export default function LoginPage() {
               {loading ? (
                 <div className="spinner" />
               ) : (
-                <>Sign In -></>
+                <>Sign In {'->'}</>
               )}
             </button>
           </form>
