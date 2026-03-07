@@ -94,7 +94,14 @@ export default function ReportsPage() {
 
     setExporting(true)
     try {
-      const params = { ...filters }
+      const reportTypeMap: Record<string, string> = {
+        Loans: 'loans',
+        EMI: 'emi',
+        Members: 'members',
+        Branch: 'branch',
+        Staff: 'staff',
+      }
+      const params = { ...filters, reportType: reportTypeMap[activeTab] || 'all' }
       const response = await exportReportsExcel(params)
       const blob = new Blob(
         [response.data],
@@ -104,7 +111,7 @@ export default function ReportsPage() {
       const link = document.createElement('a')
       link.href = downloadUrl
       const tag = new Date().toISOString().slice(0, 10)
-      link.download = `loanflow-report-${tag}.xlsx`
+      link.download = `loanflow-${params.reportType}-report-${tag}.xlsx`
       document.body.appendChild(link)
       link.click()
       link.remove()

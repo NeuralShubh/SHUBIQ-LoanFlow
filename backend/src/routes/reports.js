@@ -37,125 +37,18 @@ function toDateCell(value) {
 router.get('/export/excel', authenticate, async (req, res) => {
   try {
     const { from, to, branchId, centreId, status } = req.query;
+    const reportType = String(req.query.reportType || 'all').toLowerCase();
+    const validTypes = new Set(['all', 'loans', 'emi', 'members', 'branch', 'staff']);
+    if (!validTypes.has(reportType)) {
+      return res.status(400).json({ error: 'Invalid report type' });
+    }
+
     const baseFilter = {
       ...applyBranchFilter(req),
       ...(req.user.role === 'STAFF' ? { staffId: req.user.id } : {}),
     };
 
     const dateRange = normalizeDateRange(from, to);
-
-    const loanWhere = { ...baseFilter };
-    if (branchId) loanWhere.branchId = branchId;
-    if (centreId) loanWhere.centreId = centreId;
-    const normalizedLoanStatus = String(status || '').toUpperCase();
-    if (normalizedLoanStatus && LOAN_STATUSES.has(normalizedLoanStatus)) loanWhere.status = normalizedLoanStatus;
-    if (dateRange.gte || dateRange.lte) loanWhere.loanDate = dateRange;
-
-    const memberWhere = { isActive: true, ...baseFilter };
-    if (branchId) memberWhere.branchId = branchId;
-    if (centreId) memberWhere.centreId = centreId;
-    if (dateRange.gte || dateRange.lte) memberWhere.createdAt = dateRange;
-
-    const emiWhere = { loan: { ...baseFilter } };
-    if (branchId) emiWhere.loan.branchId = branchId;
-    if (centreId) emiWhere.loan.centreId = centreId;
-    const normalizedEmiStatus = String(status || '').toUpperCase();
-    if (normalizedEmiStatus && EMI_STATUSES.has(normalizedEmiStatus)) emiWhere.status = normalizedEmiStatus;
-    if (dateRange.gte || dateRange.lte) emiWhere.dueDate = dateRange;
-
-    const [loans, members, emis] = await Promise.all([
-      prisma.loan.findMany({
-        where: loanWhere,
-        include: {
-          member: true,
-          branch: true,
-          centre: true,
-          staff: { select: { name: true } },
-          emis: true,
-        },
-        orderBy: { loanDate: 'desc' },
-      }),
-      prisma.member.findMany({
-        where: memberWhere,
-        include: {
-          branch: true,
-          centre: true,
-          staff: { select: { name: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.emiPayment.findMany({
-        where: emiWhere,
-        include: {
-          loan: {
-            include: {
-              member: true,
-              branch: true,
-              centre: true,
-              staff: { select: { name: true } },
-            },
-          },
-        },
-        orderBy: { dueDate: 'desc' },
-      }),
-    ]);
-
-    const summaryRows = [
-      { metric: 'Generated At (UTC)', value: new Date().toISOString() },
-      { metric: 'From', value: from || 'N/A' },
-      { metric: 'To', value: to || 'N/A' },
-      { metric: 'Total Loans', value: loans.length },
-      { metric: 'Total Members', value: members.length },
-      { metric: 'Total EMI Rows', value: emis.length },
-      { metric: 'Total Disbursed', value: loans.reduce((sum, l) => sum + l.principal, 0) },
-      { metric: 'Total Payable', value: loans.reduce((sum, l) => sum + l.totalPayable, 0) },
-      { metric: 'Total Collected', value: loans.reduce((sum, l) => sum + l.emis.filter((e) => e.status === 'PAID').reduce((a, e) => a + (e.paidAmount || 0), 0), 0) },
-    ];
-
-    const loanRows = loans.map((l) => ({
-      loanId: l.loanId,
-      loanDate: toDateCell(l.loanDate),
-      memberId: l.member?.memberId || '',
-      memberName: l.member?.name || '',
-      branch: `${l.branch?.code || ''} ${l.branch?.name || ''}`.trim(),
-      centre: `${l.centre?.code || ''} ${l.centre?.name || ''}`.trim(),
-      staff: l.staff?.name || '',
-      principal: l.principal,
-      interestRate: l.interestRate,
-      durationWeeks: l.durationWeeks,
-      totalPayable: l.totalPayable,
-      weeklyEmi: l.weeklyEmi,
-      status: l.status,
-    }));
-
-    const memberRows = members.map((m) => ({
-      memberId: m.memberId,
-      name: m.name,
-      phone: m.phone,
-      branch: `${m.branch?.code || ''} ${m.branch?.name || ''}`.trim(),
-      centre: `${m.centre?.code || ''} ${m.centre?.name || ''}`.trim(),
-      staff: m.staff?.name || '',
-      status: m.status,
-      createdAt: toDateCell(m.createdAt),
-    }));
-
-    const emiRows = emis.map((e) => ({
-      emiId: e.id,
-      loanId: e.loan?.loanId || '',
-      emiNumber: e.emiNumber,
-      dueDate: toDateCell(e.dueDate),
-      paidDate: toDateCell(e.paidDate),
-      memberId: e.loan?.member?.memberId || '',
-      memberName: e.loan?.member?.name || '',
-      branch: `${e.loan?.branch?.code || ''} ${e.loan?.branch?.name || ''}`.trim(),
-      centre: `${e.loan?.centre?.code || ''} ${e.loan?.centre?.name || ''}`.trim(),
-      staff: e.loan?.staff?.name || '',
-      amount: e.amount,
-      paidAmount: e.paidAmount || 0,
-      status: e.status,
-      paymentMethod: e.paymentMethod || '',
-    }));
-
     const workbook = new ExcelJS.Workbook();
     workbook.created = new Date();
 
@@ -172,16 +65,207 @@ router.get('/export/excel', authenticate, async (req, res) => {
       sheet.views = [{ state: 'frozen', ySplit: 1 }];
     };
 
-    addSheet('Summary', summaryRows);
-    addSheet('Loans', loanRows);
-    addSheet('Members', memberRows);
-    addSheet('EMIs', emiRows);
+    const addSummary = (rowsCount) => {
+      addSheet('Summary', [
+        { metric: 'Generated At (UTC)', value: new Date().toISOString() },
+        { metric: 'Report Type', value: reportType.toUpperCase() },
+        { metric: 'From', value: from || 'N/A' },
+        { metric: 'To', value: to || 'N/A' },
+        { metric: 'Rows', value: rowsCount },
+      ]);
+    };
+
+    if (reportType === 'loans' || reportType === 'all') {
+      const loanWhere = { ...baseFilter };
+      if (branchId) loanWhere.branchId = branchId;
+      if (centreId) loanWhere.centreId = centreId;
+      const normalizedLoanStatus = String(status || '').toUpperCase();
+      if (normalizedLoanStatus && LOAN_STATUSES.has(normalizedLoanStatus)) loanWhere.status = normalizedLoanStatus;
+      if (dateRange.gte || dateRange.lte) loanWhere.loanDate = dateRange;
+
+      const loans = await prisma.loan.findMany({
+        where: loanWhere,
+        include: {
+          member: true,
+          branch: true,
+          centre: true,
+          staff: { select: { name: true } },
+        },
+        orderBy: { loanDate: 'desc' },
+      });
+
+      const loanRows = loans.map((l) => ({
+        loanId: l.loanId,
+        loanDate: toDateCell(l.loanDate),
+        memberId: l.member?.memberId || '',
+        memberName: l.member?.name || '',
+        branch: `${l.branch?.code || ''} ${l.branch?.name || ''}`.trim(),
+        centre: `${l.centre?.code || ''} ${l.centre?.name || ''}`.trim(),
+        staff: l.staff?.name || '',
+        principal: l.principal,
+        interestRate: l.interestRate,
+        durationWeeks: l.durationWeeks,
+        totalPayable: l.totalPayable,
+        weeklyEmi: l.weeklyEmi,
+        status: l.status,
+      }));
+
+      addSummary(loanRows.length);
+      addSheet('Loans', loanRows);
+    }
+
+    if (reportType === 'emi' || reportType === 'all') {
+      const emiWhere = { loan: { ...baseFilter } };
+      if (branchId) emiWhere.loan.branchId = branchId;
+      if (centreId) emiWhere.loan.centreId = centreId;
+      const normalizedEmiStatus = String(status || '').toUpperCase();
+      if (normalizedEmiStatus && EMI_STATUSES.has(normalizedEmiStatus)) emiWhere.status = normalizedEmiStatus;
+      if (dateRange.gte || dateRange.lte) emiWhere.dueDate = dateRange;
+
+      const emis = await prisma.emiPayment.findMany({
+        where: emiWhere,
+        include: {
+          loan: {
+            include: {
+              member: true,
+              branch: true,
+              centre: true,
+              staff: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { dueDate: 'desc' },
+      });
+
+      const emiRows = emis.map((e) => ({
+        emiId: e.id,
+        loanId: e.loan?.loanId || '',
+        emiNumber: e.emiNumber,
+        dueDate: toDateCell(e.dueDate),
+        paidDate: toDateCell(e.paidDate),
+        memberId: e.loan?.member?.memberId || '',
+        memberName: e.loan?.member?.name || '',
+        branch: `${e.loan?.branch?.code || ''} ${e.loan?.branch?.name || ''}`.trim(),
+        centre: `${e.loan?.centre?.code || ''} ${e.loan?.centre?.name || ''}`.trim(),
+        staff: e.loan?.staff?.name || '',
+        amount: e.amount,
+        paidAmount: e.paidAmount || 0,
+        status: e.status,
+        paymentMethod: e.paymentMethod || '',
+      }));
+
+      addSummary(emiRows.length);
+      addSheet('EMIs', emiRows);
+    }
+
+    if (reportType === 'members' || reportType === 'all') {
+      const memberWhere = { isActive: true, ...baseFilter };
+      if (branchId) memberWhere.branchId = branchId;
+      if (centreId) memberWhere.centreId = centreId;
+      const normalizedMemberStatus = String(status || '').toUpperCase();
+      if (normalizedMemberStatus && MEMBER_STATUSES.has(normalizedMemberStatus)) memberWhere.status = normalizedMemberStatus;
+      if (dateRange.gte || dateRange.lte) memberWhere.createdAt = dateRange;
+
+      const members = await prisma.member.findMany({
+        where: memberWhere,
+        include: {
+          branch: true,
+          centre: true,
+          staff: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const memberRows = members.map((m) => ({
+        memberId: m.memberId,
+        name: m.name,
+        phone: m.phone,
+        branch: `${m.branch?.code || ''} ${m.branch?.name || ''}`.trim(),
+        centre: `${m.centre?.code || ''} ${m.centre?.name || ''}`.trim(),
+        staff: m.staff?.name || '',
+        status: m.status,
+        createdAt: toDateCell(m.createdAt),
+      }));
+
+      addSummary(memberRows.length);
+      addSheet('Members', memberRows);
+    }
+
+    if (reportType === 'branch' || reportType === 'all') {
+      const branchWhere = { isActive: true };
+      if (req.user.role === 'STAFF' && req.user.branchId) {
+        branchWhere.id = req.user.branchId;
+      } else if (branchId) {
+        branchWhere.id = branchId;
+      }
+      if (centreId) branchWhere.centres = { some: { id: centreId, isActive: true } };
+
+      const branches = await prisma.branch.findMany({ where: branchWhere, orderBy: { code: 'asc' } });
+      const branchRows = await Promise.all(branches.map(async (b) => {
+        const loanWhere = { branchId: b.id };
+        if (req.user.role === 'STAFF') loanWhere.staffId = req.user.id;
+        if (centreId) loanWhere.centreId = centreId;
+        if (status) {
+          const st = String(status).toUpperCase();
+          if (LOAN_STATUSES.has(st)) loanWhere.status = st;
+        }
+        if (dateRange.gte || dateRange.lte) loanWhere.loanDate = dateRange;
+        const loans = await prisma.loan.findMany({ where: loanWhere, include: { emis: true } });
+        const memberCount = await prisma.member.count({ where: { isActive: true, branchId: b.id } });
+        const totalDisbursed = loans.reduce((sum, l) => sum + l.principal, 0);
+        const totalCollected = loans.reduce((sum, l) => sum + l.emis.filter((e) => e.status === 'PAID').reduce((a, e) => a + (e.paidAmount || 0), 0), 0);
+        return {
+          branchCode: b.code,
+          branchName: b.name,
+          memberCount,
+          activeLoans: loans.filter((l) => l.status === 'ACTIVE').length,
+          overdueLoans: loans.filter((l) => l.status === 'OVERDUE').length,
+          totalDisbursed,
+          totalCollected,
+          recoveryRate: totalDisbursed > 0 ? Number(((totalCollected / totalDisbursed) * 100).toFixed(2)) : 0,
+        };
+      }));
+
+      addSummary(branchRows.length);
+      addSheet('Branch', branchRows);
+    }
+
+    if (reportType === 'staff' || reportType === 'all') {
+      const where = { role: 'STAFF', isActive: true, ...applyBranchFilter(req) };
+      if (branchId) where.branchId = branchId;
+      if (centreId) {
+        where.OR = [
+          { members: { some: { centreId, isActive: true } } },
+          { loans: { some: { centreId } } },
+        ];
+      }
+      const staff = await prisma.user.findMany({
+        where,
+        include: { branch: true, loans: { include: { emis: true } }, members: true },
+      });
+      const staffRows = staff.map((s) => ({
+        name: s.name,
+        email: s.email,
+        branch: s.branch?.name || '',
+        memberCount: s.members.length,
+        activeLoans: s.loans.filter((l) => l.status === 'ACTIVE').length,
+        totalDisbursed: s.loans.reduce((sum, l) => sum + l.principal, 0),
+        totalCollected: s.loans.reduce((sum, l) => sum + l.emis.filter((e) => e.status === 'PAID').reduce((a, e) => a + (e.paidAmount || 0), 0), 0),
+      }));
+
+      addSummary(staffRows.length);
+      addSheet('Staff', staffRows);
+    }
+
+    if (workbook.worksheets.length === 0) {
+      addSheet('Summary', [{ metric: 'Message', value: 'No data for selected filters' }]);
+    }
 
     const fileBuffer = await workbook.xlsx.writeBuffer();
     const dateTag = new Date().toISOString().slice(0, 10);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="loanflow-report-${dateTag}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="loanflow-${reportType}-report-${dateTag}.xlsx"`);
     res.send(fileBuffer);
   } catch (error) {
     const message = error.message || 'Failed to export report';
