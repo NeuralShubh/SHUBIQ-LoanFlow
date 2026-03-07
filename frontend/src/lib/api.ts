@@ -4,6 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -30,6 +31,13 @@ api.interceptors.response.use(
 )
 
 export default api
+
+export const wakeBackend = () =>
+  api.get('/health', {
+    timeout: 60000,
+    headers: { 'Cache-Control': 'no-cache' },
+    params: { t: Date.now() },
+  })
 
 // Auth
 export const login = (email: string, password: string) =>

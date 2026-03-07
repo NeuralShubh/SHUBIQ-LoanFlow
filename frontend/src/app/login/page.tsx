@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
-import { login } from '@/lib/api'
+import { login, wakeBackend } from '@/lib/api'
 import { TrendingUp, Shield, Lock, Mail, Eye, EyeOff, Landmark } from 'lucide-react'
 
 export default function LoginPage() {
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isWakingBackend, setIsWakingBackend] = useState(false)
 
   useEffect(() => {
     initFromStorage()
@@ -47,7 +48,30 @@ export default function LoginPage() {
       setUser(res.data.user)
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Check your credentials.')
+      // Render free services may sleep; warm once and retry login.
+      if (!err.response) {
+        try {
+          setIsWakingBackend(true)
+          await wakeBackend()
+          const retry = await login(email.trim(), password.trim())
+          setToken(retry.data.token)
+          setUser(retry.data.user)
+          router.push('/dashboard')
+          return
+        } catch (retryErr: any) {
+          if (retryErr.response?.data?.error) {
+            setError(retryErr.response.data.error)
+          } else if (retryErr.code === 'ECONNABORTED') {
+            setError('Backend is waking up on Render. Wait 30-60 seconds and try again.')
+          } else {
+            setError('Cannot reach backend. Check Render URL and CORS environment variables.')
+          }
+        } finally {
+          setIsWakingBackend(false)
+        }
+      } else {
+        setError(err.response?.data?.error || 'Login failed. Check your credentials.')
+      }
     } finally {
       setLoading(false)
     }
@@ -154,6 +178,11 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+            {isWakingBackend && (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl px-4 py-3">
+                Waking backend on Render. First request can take up to 60 seconds.
+              </div>
+            )}
 
             <button
               type="submit"
@@ -163,7 +192,7 @@ export default function LoginPage() {
               {loading ? (
                 <div className="spinner" />
               ) : (
-                <>Sign In →</>
+                <>Sign In -></>
               )}
             </button>
           </form>
@@ -177,7 +206,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          LoanFlow v1.0 · Secure Microfinance Platform
+          LoanFlow v1.0 - Secure Microfinance Platform
         </p>
       </div>
     </div>
