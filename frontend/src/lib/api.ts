@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '')
 
 const api = axios.create({
   baseURL: API_URL,
@@ -20,7 +20,17 @@ api.interceptors.request.use((config) => {
 // Handle 401
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const config = err?.config as any
+    const isGetRequest = (config?.method || '').toLowerCase() === 'get'
+    const isTransient = !err?.response || err?.code === 'ECONNABORTED'
+
+    if (config && isGetRequest && isTransient && !config.__retried) {
+      config.__retried = true
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      return api(config)
+    }
+
     if (err.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('loanflow_token')
       localStorage.removeItem('loanflow_user')

@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { login, wakeBackend } from '@/lib/api'
-import { TrendingUp, Shield, Lock, Mail, Eye, EyeOff, Landmark } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff, Landmark } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const { setUser, setToken, user, initFromStorage } = useAuthStore()
-  const [role, setRole] = useState<'admin' | 'staff'>('admin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -25,19 +24,6 @@ export default function LoginPage() {
     if (user) router.push('/dashboard')
   }, [user])
 
-  // Auto-fill demo credentials
-  const fillDemo = (r: 'admin' | 'staff') => {
-    setRole(r)
-    if (r === 'admin') {
-      setEmail('admin@loanflow.com')
-      setPassword('admin1234')
-    } else {
-      setEmail('ram@loanflow.com')
-      setPassword('ram1234')
-    }
-    setError('')
-  }
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -48,7 +34,6 @@ export default function LoginPage() {
       setUser(res.data.user)
       router.push('/dashboard')
     } catch (err: any) {
-      // Render free services may sleep; warm once and retry login.
       if (!err.response) {
         try {
           setIsWakingBackend(true)
@@ -62,9 +47,9 @@ export default function LoginPage() {
           if (retryErr.response?.data?.error) {
             setError(retryErr.response.data.error)
           } else if (retryErr.code === 'ECONNABORTED') {
-            setError('Backend is waking up on Render. Wait 30-60 seconds and try again.')
+            setError('Server is starting. Wait 30-60 seconds and try again.')
           } else {
-            setError('Cannot reach backend. Check Render URL and CORS environment variables.')
+            setError('Cannot reach server. Check API URL and CORS environment variables.')
           }
         } finally {
           setIsWakingBackend(false)
@@ -101,32 +86,6 @@ export default function LoginPage() {
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
             <p className="text-sm text-slate-400">Sign in to your account to continue</p>
-          </div>
-
-          {/* Role Toggle */}
-          <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-muted rounded-xl">
-            <button
-              onClick={() => fillDemo('admin')}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                role === 'admin'
-                  ? 'bg-card text-blue-400 shadow-sm border border-blue-500/20'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              Admin
-            </button>
-            <button
-              onClick={() => fillDemo('staff')}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                role === 'staff'
-                  ? 'bg-card text-blue-400 shadow-sm border border-blue-500/20'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" />
-              Staff
-            </button>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -180,7 +139,7 @@ export default function LoginPage() {
             )}
             {isWakingBackend && (
               <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl px-4 py-3">
-                Waking backend on Render. First request can take up to 60 seconds.
+                Server is starting. First request can take up to 60 seconds.
               </div>
             )}
 
@@ -197,12 +156,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo hint */}
-          <div className="mt-4 p-3 bg-blue-500/8 border border-blue-500/20 rounded-xl">
-            <p className="text-xs text-slate-500 text-center">
-              <span className="text-blue-400 font-semibold">Demo:</span> Click Admin or Staff above to auto-fill credentials
-            </p>
-          </div>
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">

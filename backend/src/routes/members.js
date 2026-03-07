@@ -4,6 +4,26 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 const MEMBER_STATUSES = new Set(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+const CREATE_MEMBER_MAX_RETRIES = 5;
+
+function isUniqueConstraintError(error, fieldName) {
+  return Boolean(error && error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes(fieldName));
+}
+
+async function getNextMemberCode() {
+  const members = await prisma.member.findMany({
+    where: { memberId: { startsWith: 'M' } },
+    select: { memberId: true },
+  });
+  let maxNum = 0;
+  for (const member of members) {
+    const match = /^M(\d+)$/.exec(member.memberId);
+    if (!match) continue;
+    const num = parseInt(match[1], 10);
+    if (!Number.isNaN(num) && num > maxNum) maxNum = num;
+  }
+  return `M${String(maxNum + 1).padStart(3, '0')}`;
+}
 
 
 // GET /api/members
@@ -79,17 +99,48 @@ router.post('/', authenticate, async (req, res) => {
     if (!name || !phone || !branchId || !centreId) {
       return res.status(400).json({ error: 'Name, phone, branch, and centre are required' });
     }
+    const normalizedName = String(name).trim();
+    const normalizedPhone = String(phone).trim();
+    if (!normalizedName) return res.status(400).json({ error: 'Valid name is required' });
+    if (!/^\d{10,15}$/.test(normalizedPhone)) return res.status(400).json({ error: 'Phone must be 10-15 digits' });
 
-    const count = await prisma.member.count();
-    const memberId = `M${String(count + 1).padStart(3, '0')}`;
-    const staffId = req.user.role === 'STAFF' ? req.user.id : null;
+    if (req.user.role === 'STAFF' && req.user.branchId !== branchId) {
+      return res.status(403).json({ error: 'Staff can only create members in their own branch' });
+    }
 
-    const member = await prisma.member.create({
-      data: { memberId, name, phone, aadhar, area, branchId, centreId, staffId },
-      include: { branch: true, centre: true },
+    const centre = await prisma.centre.findUnique({
+      where: { id: centreId },
+      select: { id: true, branchId: true, isActive: true },
     });
-    res.status(201).json(member);
+    if (!centre || !centre.isActive) return res.status(400).json({ error: 'Invalid centre' });
+    if (centre.branchId !== branchId) return res.status(400).json({ error: 'Centre does not belong to selected branch' });
+
+    const staffId = req.user.role === 'STAFF' ? req.user.id : null;
+    for (let attempt = 1; attempt <= CREATE_MEMBER_MAX_RETRIES; attempt += 1) {
+      const memberId = await getNextMemberCode();
+      try {
+        const member = await prisma.member.create({
+          data: {
+            memberId,
+            name: normalizedName,
+            phone: normalizedPhone,
+            aadhar: aadhar ? String(aadhar).trim() : null,
+            area: area ? String(area).trim() : null,
+            branchId,
+            centreId,
+            staffId,
+          },
+          include: { branch: true, centre: true },
+        });
+        return res.status(201).json(member);
+      } catch (error) {
+        if (isUniqueConstraintError(error, 'memberId') && attempt < CREATE_MEMBER_MAX_RETRIES) continue;
+        throw error;
+      }
+    }
+    return res.status(503).json({ error: 'Please retry member creation' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to create member' });
   }
 });

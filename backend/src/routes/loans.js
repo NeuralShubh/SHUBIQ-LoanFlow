@@ -3,6 +3,12 @@ const prisma = require('../lib/prisma');
 const { authenticate, requireAdmin, applyBranchFilter } = require('../middleware/auth');
 
 const router = express.Router();
+const LOAN_STATUSES = new Set(['ACTIVE', 'OVERDUE', 'COMPLETED', 'CANCELLED']);
+const CREATE_LOAN_MAX_RETRIES = 5;
+
+function isUniqueConstraintError(error, fieldName) {
+  return Boolean(error && error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes(fieldName));
+}
 
 
 function calculateLoan(principal, interestRate, durationWeeks, fixedFeeRate = 2) {
@@ -56,7 +62,11 @@ router.get('/', authenticate, async (req, res) => {
       ...(req.user.role === 'STAFF' ? { staffId: req.user.id } : {}),
     };
     const where = { ...filter };
-    if (status) where.status = status.toUpperCase();
+    if (status) {
+      const normalizedStatus = String(status).toUpperCase();
+      if (!LOAN_STATUSES.has(normalizedStatus)) return res.status(400).json({ error: 'Invalid loan status' });
+      where.status = normalizedStatus;
+    }
     if (branchId) where.branchId = branchId;
     if (centreId) where.centreId = centreId;
     if (search) {
@@ -115,52 +125,73 @@ router.post('/', authenticate, async (req, res) => {
     if (!memberId || !principal || !interestRate || !durationWeeks || !loanDate || !emiStartDate) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+    const principalNum = Number(principal);
+    const interestRateNum = Number(interestRate);
+    const durationWeeksNum = Number(durationWeeks);
+    const fixedFeeRateNum = Number(fixedFeeRate || 2);
+    const loanDateObj = new Date(loanDate);
+    const emiStartDateObj = new Date(emiStartDate);
+
+    if (!Number.isFinite(principalNum) || principalNum <= 0) return res.status(400).json({ error: 'Invalid principal amount' });
+    if (!Number.isFinite(interestRateNum) || interestRateNum < 0 || interestRateNum > 100) return res.status(400).json({ error: 'Invalid interest rate' });
+    if (!Number.isInteger(durationWeeksNum) || durationWeeksNum < 1 || durationWeeksNum > 260) return res.status(400).json({ error: 'Duration must be 1-260 weeks' });
+    if (!Number.isFinite(fixedFeeRateNum) || fixedFeeRateNum < 0 || fixedFeeRateNum > 20) return res.status(400).json({ error: 'Invalid fixed fee rate' });
+    if (Number.isNaN(loanDateObj.getTime()) || Number.isNaN(emiStartDateObj.getTime())) return res.status(400).json({ error: 'Invalid loan/EMI date' });
+    if (emiStartDateObj < loanDateObj) return res.status(400).json({ error: 'EMI start date cannot be before loan date' });
 
     const member = await prisma.member.findUnique({ where: { id: memberId } });
     if (!member) return res.status(404).json({ error: 'Member not found' });
+    if (req.user.role === 'STAFF' && member.branchId !== req.user.branchId) {
+      return res.status(403).json({ error: 'Staff can only create loans in their own branch' });
+    }
 
     const calcs = calculateLoan(
-      parseFloat(principal),
-      parseFloat(interestRate),
-      parseInt(durationWeeks),
-      parseFloat(fixedFeeRate || 2)
+      principalNum,
+      interestRateNum,
+      durationWeeksNum,
+      fixedFeeRateNum
     );
-
-    const loanId = await getNextLoanId();
     const staffId = req.user.role === 'STAFF' ? req.user.id : null;
+    for (let attempt = 1; attempt <= CREATE_LOAN_MAX_RETRIES; attempt += 1) {
+      const loanId = await getNextLoanId();
+      try {
+        const createdLoan = await prisma.$transaction(async (tx) => {
+          const loan = await tx.loan.create({
+            data: {
+              loanId,
+              memberId,
+              branchId: member.branchId,
+              centreId: member.centreId,
+              staffId,
+              principal: principalNum,
+              interestRate: interestRateNum,
+              durationWeeks: durationWeeksNum,
+              fixedFeeRate: fixedFeeRateNum,
+              ...calcs,
+              loanDate: loanDateObj,
+              emiStartDate: emiStartDateObj,
+              notes: notes ? String(notes).trim() : null,
+            },
+          });
 
-    const loan = await prisma.loan.create({
-      data: {
-        loanId,
-        memberId,
-        branchId: member.branchId,
-        centreId: member.centreId,
-        staffId,
-        principal: parseFloat(principal),
-        interestRate: parseFloat(interestRate),
-        durationWeeks: parseInt(durationWeeks),
-        fixedFeeRate: parseFloat(fixedFeeRate || 2),
-        ...calcs,
-        loanDate: new Date(loanDate),
-        emiStartDate: new Date(emiStartDate),
-        notes,
-      },
-      include: { member: true, branch: true, centre: true },
-    });
+          const emiData = generateEmiSchedule(loan.id, emiStartDateObj, durationWeeksNum, calcs.weeklyEmi);
+          await tx.emiPayment.createMany({ data: emiData });
+          await tx.member.update({ where: { id: memberId }, data: { status: 'ACTIVE' } });
+          return loan;
+        });
 
-    // Generate EMI schedule
-    const emiData = generateEmiSchedule(loan.id, emiStartDate, parseInt(durationWeeks), calcs.weeklyEmi);
-    await prisma.emiPayment.createMany({ data: emiData });
+        const fullLoan = await prisma.loan.findUnique({
+          where: { id: createdLoan.id },
+          include: { member: true, branch: true, centre: true, emis: { orderBy: { emiNumber: 'asc' } } },
+        });
 
-    // Update member status to ACTIVE
-    await prisma.member.update({ where: { id: memberId }, data: { status: 'ACTIVE' } });
-
-    const fullLoan = await prisma.loan.findUnique({
-      where: { id: loan.id },
-      include: { member: true, branch: true, centre: true, emis: { orderBy: { emiNumber: 'asc' } } },
-    });
-
-    res.status(201).json(fullLoan);
+        return res.status(201).json(fullLoan);
+      } catch (error) {
+        if (isUniqueConstraintError(error, 'loanId') && attempt < CREATE_LOAN_MAX_RETRIES) continue;
+        throw error;
+      }
+    }
+    return res.status(503).json({ error: 'Please retry loan creation' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to create loan' });

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'loanflow-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'loanflow-dev-only-secret';
 
 const authenticate = async (req, res, next) => {
   try {

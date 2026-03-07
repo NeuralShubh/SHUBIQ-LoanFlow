@@ -3,6 +3,26 @@ const { authenticate } = require('../middleware/auth');
 const prisma = require('../lib/prisma');
 
 const router = express.Router();
+const CREATE_BRANCH_MAX_RETRIES = 5;
+
+function isUniqueConstraintError(error, fieldName) {
+  return Boolean(error && error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes(fieldName));
+}
+
+async function getNextBranchCode() {
+  const branches = await prisma.branch.findMany({
+    where: { code: { startsWith: 'B' } },
+    select: { code: true },
+  });
+  let maxNum = 0;
+  for (const branch of branches) {
+    const match = /^B(\d+)$/.exec(branch.code);
+    if (!match) continue;
+    const num = parseInt(match[1], 10);
+    if (!Number.isNaN(num) && num > maxNum) maxNum = num;
+  }
+  return `B${String(maxNum + 1).padStart(2, '0')}`;
+}
 
 // GET /api/branches
 router.get('/', authenticate, async (req, res) => {
@@ -64,16 +84,24 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Branch name required' });
+    const normalizedName = String(name).trim();
+    if (!normalizedName) return res.status(400).json({ error: 'Branch name required' });
 
-    // Auto-generate code
-    const count = await prisma.branch.count();
-    const code = `B${String(count + 1).padStart(2, '0')}`;
-
-    const branch = await prisma.branch.create({
-      data: { code, name, createdById: req.user.id },
-    });
-    res.status(201).json(branch);
+    for (let attempt = 1; attempt <= CREATE_BRANCH_MAX_RETRIES; attempt += 1) {
+      const code = await getNextBranchCode();
+      try {
+        const branch = await prisma.branch.create({
+          data: { code, name: normalizedName, createdById: req.user.id },
+        });
+        return res.status(201).json(branch);
+      } catch (error) {
+        if (isUniqueConstraintError(error, 'code') && attempt < CREATE_BRANCH_MAX_RETRIES) continue;
+        throw error;
+      }
+    }
+    return res.status(503).json({ error: 'Please retry branch creation' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to create branch' });
   }
 });

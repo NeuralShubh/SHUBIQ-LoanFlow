@@ -59,13 +59,24 @@ router.post('/staff', authenticate, requireAdmin, async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
+    if (String(password).length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    const exists = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const exists = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (exists) return res.status(400).json({ error: 'Email already in use' });
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(String(password), 10);
     const staff = await prisma.user.create({
-      data: { name, email: email.toLowerCase(), phone, password: hashed, role: 'STAFF', branchId: branchId || null },
+      data: {
+        name: String(name).trim(),
+        email: normalizedEmail,
+        phone: phone ? String(phone).trim() : null,
+        password: hashed,
+        role: 'STAFF',
+        branchId: branchId || null,
+      },
       include: { branch: true },
     });
     const { password: _, ...result } = staff;
@@ -79,12 +90,32 @@ router.post('/staff', authenticate, requireAdmin, async (req, res) => {
 router.put('/staff/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { name, email, phone, branchId, password } = req.body;
+    const existing = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, role: true, email: true },
+    });
+    if (!existing || existing.role !== 'STAFF') {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
     const data = { name, phone, branchId: branchId || null };
-    if (email) data.email = email.toLowerCase();
-    if (password) data.password = await bcrypt.hash(password, 10);
+    if (email) {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const conflict = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (conflict && conflict.id !== existing.id) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+      data.email = normalizedEmail;
+    }
+    if (typeof name === 'string') data.name = name.trim();
+    if (typeof phone === 'string') data.phone = phone.trim();
+    if (password) {
+      if (String(password).length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      data.password = await bcrypt.hash(String(password), 10);
+    }
 
     const staff = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: existing.id },
       data,
       include: { branch: true },
     });
@@ -98,7 +129,15 @@ router.put('/staff/:id', authenticate, requireAdmin, async (req, res) => {
 // DELETE /api/settings/staff/:id
 router.delete('/staff/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    await prisma.user.update({ where: { id: req.params.id }, data: { isActive: false } });
+    const existing = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, role: true },
+    });
+    if (!existing || existing.role !== 'STAFF') {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
+    await prisma.user.update({ where: { id: existing.id }, data: { isActive: false } });
     res.json({ message: 'Staff deactivated' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to deactivate staff' });
