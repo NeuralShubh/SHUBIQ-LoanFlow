@@ -137,10 +137,15 @@ router.delete('/staff/:id', authenticate, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Staff not found' });
     }
 
-    await prisma.user.update({ where: { id: existing.id }, data: { isActive: false } });
-    res.json({ message: 'Staff deactivated' });
+    await prisma.$transaction(async (tx) => {
+      await tx.emiPayment.deleteMany({ where: { loan: { staffId: existing.id } } });
+      await tx.loan.deleteMany({ where: { staffId: existing.id } });
+      await tx.member.deleteMany({ where: { staffId: existing.id } });
+      await tx.user.update({ where: { id: existing.id }, data: { isActive: false, branchId: null } });
+    });
+    res.json({ message: 'Staff deleted with related data purge' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to deactivate staff' });
+    res.status(500).json({ error: 'Failed to delete staff' });
   }
 });
 
