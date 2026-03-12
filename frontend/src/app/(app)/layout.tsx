@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
-import { getDashboardStats, getEmiReport } from '@/lib/api'
-import { formatCurrencyFull, formatDate } from '@/lib/utils'
-import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, Landmark, Bell, AlertTriangle } from 'lucide-react'
+import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, Landmark } from 'lucide-react'
 
 const adminNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,11 +27,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { user, token, isLoading, initFromStorage } = useAuthStore()
 
-  const [overdueCount, setOverdueCount] = useState(0)
-  const [overdueEmis, setOverdueEmis] = useState<any[]>([])
-  const [loadingOverdue, setLoadingOverdue] = useState(false)
-  const [showOverduePopup, setShowOverduePopup] = useState(false)
-
   useEffect(() => {
     initFromStorage()
   }, [])
@@ -41,29 +34,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && !token) router.push('/login')
   }, [isLoading, token])
-
-  const loadOverdueData = async () => {
-    if (!token) return
-    setLoadingOverdue(true)
-    try {
-      const [statsRes, overdueRes] = await Promise.all([
-        getDashboardStats(),
-        getEmiReport({ status: 'OVERDUE' }),
-      ])
-      setOverdueCount(statsRes.data?.overdueEmis || 0)
-      setOverdueEmis(overdueRes.data || [])
-    } catch {
-      setOverdueCount(0)
-      setOverdueEmis([])
-    } finally {
-      setLoadingOverdue(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!token) return
-    loadOverdueData()
-  }, [token])
 
   if (isLoading || !user) {
     return (
@@ -128,23 +98,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-          <button
-            type="button"
-            onClick={() => {
-              setShowOverduePopup(true)
-              loadOverdueData()
-            }}
-            className="relative w-10 h-10 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-blue-500/10 transition-colors flex items-center justify-center"
-            title="Overdue EMIs"
-            aria-label="Overdue EMIs"
-          >
-            <Bell className="w-4.5 h-4.5 text-slate-100" />
-            {overdueCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none ring-2 ring-slate-950">
-                {overdueCount > 99 ? '99+' : overdueCount}
-              </span>
-            )}
-          </button>
           </div>
         </header>
 
@@ -166,59 +119,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
       </main>
 
-      {showOverduePopup && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end lg:items-start lg:justify-end"
-          onClick={() => setShowOverduePopup(false)}
-        >
-          <div
-            className="w-full lg:w-[420px] bg-card border border-border rounded-t-2xl lg:rounded-2xl lg:m-4 max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                <h3 className="text-sm font-bold text-white">Overdue EMIs</h3>
-              </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/30">
-                {overdueCount}
-              </span>
-            </div>
-
-            <div className="max-h-[65vh] overflow-y-auto divide-y divide-border">
-              {loadingOverdue ? (
-                <div className="py-10 flex justify-center">
-                  <div className="spinner" />
-                </div>
-              ) : overdueEmis.length === 0 ? (
-                <div className="p-6 text-center text-sm text-slate-500">No overdue EMIs</div>
-              ) : (
-                overdueEmis.map((emi) => (
-                  <button
-                    key={emi.id}
-                    type="button"
-                    onClick={() => {
-                      setShowOverduePopup(false)
-                      if (emi.loan?.memberId) router.push(`/members/${emi.loan.memberId}`)
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-white truncate">{emi.loan?.member?.name || 'Member'}</div>
-                        <div className="text-xs text-slate-500 mt-0.5 truncate">
-                          {emi.loan?.member?.memberId || '-'} - EMI #{emi.emiNumber} - Due {formatDate(emi.dueDate)}
-                        </div>
-                      </div>
-                      <div className="text-xs font-bold text-red-300 whitespace-nowrap">{formatCurrencyFull(emi.amount)}</div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

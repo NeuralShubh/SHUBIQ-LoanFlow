@@ -9,7 +9,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 } from 'chart.js'
 import {
-  Users, CreditCard, AlertTriangle, TrendingUp,
+  Users, CreditCard, TrendingUp,
   Wallet, ArrowRight, Clock, CheckCircle, IndianRupee
 } from 'lucide-react'
 import Link from 'next/link'
@@ -19,7 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 interface Stats {
   totalMembers: number
   activeLoans: number
-  overdueEmis: number
+  todayCollected: number
   totalDisbursed: number
   totalRecovered: number
   outstanding: number
@@ -234,11 +234,11 @@ export default function DashboardPage() {
           format="number"
         />
         <StatCard
-          label="EMIs Overdue"
-          value={stats?.overdueEmis ?? 0}
-          icon={AlertTriangle}
-          color="red"
-          format="number"
+          label="Collected Today"
+          value={stats?.todayCollected ?? 0}
+          icon={Wallet}
+          color="green"
+          format="currency"
         />
         <StatCard
           label="Outstanding"

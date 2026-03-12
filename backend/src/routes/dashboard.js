@@ -102,6 +102,7 @@ router.get('/stats', authenticate, async (req, res) => {
         SELECT
           COALESCE(SUM(CASE WHEN ep.status = 'PAID' THEN COALESCE(ep."paidAmount", 0) ELSE 0 END), 0) AS total_recovered,
           COALESCE(SUM(CASE WHEN ep.status = 'OVERDUE' AND ep."dueDate" < NOW() THEN 1 ELSE 0 END), 0) AS overdue_count,
+          COALESCE(SUM(CASE WHEN ep.status = 'PAID' AND ep."paidDate" >= ${todayStart} AND ep."paidDate" <= ${todayEnd} THEN COALESCE(ep."paidAmount", 0) ELSE 0 END), 0) AS today_collected,
           COALESCE(SUM(CASE WHEN ep."dueDate" >= ${weekStart} AND ep."dueDate" < ${tomorrowStart} THEN ep.amount ELSE 0 END), 0) AS weekly_target,
           COALESCE(SUM(CASE WHEN ep.status = 'PAID' AND ep."paidDate" >= ${weekStart} AND ep."paidDate" < ${tomorrowStart} THEN COALESCE(ep."paidAmount", 0) ELSE 0 END), 0) AS weekly_collected,
           COALESCE(SUM(CASE WHEN ep."dueDate" >= ${monthStart} AND ep."dueDate" < ${nextMonthStart} THEN ep.amount ELSE 0 END), 0) AS monthly_target,
@@ -120,6 +121,7 @@ router.get('/stats', authenticate, async (req, res) => {
     const weeklyCollectedAmt = toNumber(agg.weekly_collected);
     const monthlyTargetAmt = toNumber(agg.monthly_target);
     const monthlyCollectedAmt = toNumber(agg.monthly_collected);
+    const todayCollectedAmt = toNumber(agg.today_collected);
 
     let storage = null;
     if (req.user.role === 'ADMIN') {
@@ -136,6 +138,7 @@ router.get('/stats', authenticate, async (req, res) => {
       totalMembers,
       activeLoans,
       overdueEmis: Math.round(toNumber(agg.overdue_count)),
+      todayCollected: todayCollectedAmt,
       totalDisbursed: totalDisbursedAmt,
       totalRecovered: totalRecoveredAmt,
       outstanding: totalPayableAmt - totalRecoveredAmt,
