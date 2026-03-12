@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getLoans, createLoan, getMembers, getBranches } from '@/lib/api'
 import { formatDate, formatCurrency, formatCurrencyFull, getInitials, getAvatarGradient, getLoanStatusColor, calculateLoan } from '@/lib/utils'
-import { CreditCard, Search, Plus, IndianRupee, TrendingUp, CheckCircle, ChevronDown } from 'lucide-react'
+import { CreditCard, Search, Plus, IndianRupee, TrendingUp, CheckCircle, ChevronDown, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 
@@ -32,6 +32,19 @@ export default function LoansPage() {
   const totalPayable = loans.reduce((s, l) => s + l.totalPayable, 0)
   const totalRecovered = loans.reduce((s, l) => s + (l.emis?.filter((e: any) => e.status === 'PAID').reduce((a: number, e: any) => a + (e.paidAmount || 0), 0) || 0), 0)
   const outstanding = totalPayable - totalRecovered
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date()
+  todayEnd.setHours(23, 59, 59, 999)
+  const collectedToday = loans.reduce((sum, l) => {
+    const emis = l.emis || []
+    const paidToday = emis.filter((e: any) => {
+      if (e.status !== 'PAID' || !e.paidDate) return false
+      const paidAt = new Date(e.paidDate)
+      return paidAt >= todayStart && paidAt <= todayEnd
+    })
+    return sum + paidToday.reduce((a: number, e: any) => a + (e.paidAmount || 0), 0)
+  }, 0)
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -60,6 +73,11 @@ export default function LoansPage() {
           <TrendingUp className="w-4 h-4 text-emerald-400 mb-2" />
           <div className="text-xl font-bold font-mono text-green">{formatCurrency(totalRecovered)}</div>
           <div className="text-xs text-slate-500 mt-1">Recovered</div>
+        </div>
+        <div className="bg-card border border-border stat-border-green rounded-xl p-4">
+          <Wallet className="w-4 h-4 text-emerald-400 mb-2" />
+          <div className="text-xl font-bold font-mono text-green">{formatCurrency(collectedToday)}</div>
+          <div className="text-xs text-slate-500 mt-1">Collected Today</div>
         </div>
         <div className="bg-card border border-border stat-border-blue rounded-xl p-4">
           <CreditCard className="w-4 h-4 text-blue-400 mb-2" />
