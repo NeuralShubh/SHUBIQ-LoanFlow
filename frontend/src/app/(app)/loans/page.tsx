@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getLoans, createLoan, getMembers, getBranches } from '@/lib/api'
 import { formatDate, formatCurrency, formatCurrencyFull, getInitials, getAvatarGradient, getLoanStatusColor, calculateLoan } from '@/lib/utils'
-import { CreditCard, Search, Plus, IndianRupee, TrendingUp, AlertTriangle, CheckCircle, ChevronDown } from 'lucide-react'
+import { CreditCard, Search, Plus, IndianRupee, TrendingUp, CheckCircle, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 
@@ -32,7 +32,6 @@ export default function LoansPage() {
   const totalPayable = loans.reduce((s, l) => s + l.totalPayable, 0)
   const totalRecovered = loans.reduce((s, l) => s + (l.emis?.filter((e: any) => e.status === 'PAID').reduce((a: number, e: any) => a + (e.paidAmount || 0), 0) || 0), 0)
   const outstanding = totalPayable - totalRecovered
-  const overdueCount = loans.filter(l => l.status === 'OVERDUE').length
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -67,16 +66,11 @@ export default function LoansPage() {
           <div className="text-xl font-bold font-mono text-blue-400">{formatCurrency(outstanding)}</div>
           <div className="text-xs text-slate-500 mt-1">Outstanding</div>
         </div>
-        <div className="bg-card border border-border stat-border-red rounded-xl p-4">
-          <AlertTriangle className="w-4 h-4 text-red-400 mb-2" />
-          <div className="text-xl font-bold font-mono text-red">{overdueCount}</div>
-          <div className="text-xs text-slate-500 mt-1">Overdue</div>
-        </div>
       </div>
 
       {/* Filters */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {['all', 'active', 'overdue', 'completed'].map(s => (
+        {['all', 'active', 'completed'].map(s => (
           <button
             key={s}
             onClick={() => { setStatusFilter(s); load(s) }}
@@ -132,8 +126,8 @@ export default function LoansPage() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-sm font-bold font-mono text-amber-400">{formatCurrencyFull(l.totalPayable)}</div>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getLoanStatusColor(l.status)}`}>
-                    {l.status}
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getLoanStatusColor(l.status === 'OVERDUE' ? 'ACTIVE' : l.status)}`}>
+                    {l.status === 'OVERDUE' ? 'ACTIVE' : l.status}
                   </span>
                 </div>
               </Link>
