@@ -137,7 +137,9 @@ export default function MembersPage() {
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.memberId.toLowerCase().includes(search.toLowerCase())
 
-    const matchStatus = statusFilter === 'all' || (m.loans?.[0]?.status || 'NONE').toLowerCase() === statusFilter
+    const rawStatus = (m.loans?.[0]?.status || 'NONE').toLowerCase()
+    const normalizedStatus = rawStatus === 'overdue' ? 'active' : rawStatus
+    const matchStatus = statusFilter === 'all' || normalizedStatus === statusFilter
     return matchSearch && matchStatus
   })
 
@@ -335,7 +337,7 @@ export default function MembersPage() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {['all', 'active', 'overdue', 'completed'].map((s) => (
+            {['all', 'active', 'completed'].map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -388,7 +390,7 @@ export default function MembersPage() {
                           <>
                             <div className="text-xs font-bold font-mono text-amber-400">Rs {loan.principal?.toLocaleString()}</div>
                             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getLoanStatusColor(loan.status)}`}>
-                              {loan.status}
+                              {loan.status === 'OVERDUE' ? 'ACTIVE' : loan.status}
                             </span>
                           </>
                         ) : (

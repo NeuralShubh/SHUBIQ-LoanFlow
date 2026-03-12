@@ -41,7 +41,7 @@ export function getAvatarGradient(name: string): string {
 export function getLoanStatusColor(status: string) {
   switch (status?.toUpperCase()) {
     case 'ACTIVE': return 'badge-active'
-    case 'OVERDUE': return 'badge-overdue'
+    case 'OVERDUE': return 'badge-active'
     case 'COMPLETED': return 'badge-completed'
     case 'CANCELLED': return 'badge-completed'
     default: return 'badge-pending'
@@ -51,7 +51,7 @@ export function getLoanStatusColor(status: string) {
 export function getEmiStatusColor(status: string) {
   switch (status?.toUpperCase()) {
     case 'PAID': return 'badge-active'
-    case 'OVERDUE': return 'badge-overdue'
+    case 'OVERDUE': return 'badge-pending'
     case 'PENDING': return 'badge-pending'
     case 'PARTIAL': return 'text-amber-400 bg-amber-500/10 border border-amber-500/30'
     default: return 'badge-pending'

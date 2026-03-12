@@ -341,10 +341,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold font-mono text-amber-400">{formatCurrencyFull(emi.amount)}</div>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                    emi.status === 'OVERDUE' ? 'badge-overdue' : 'badge-pending'
-                  }`}>
-                    {emi.status}
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md badge-pending">
+                    {emi.status === 'OVERDUE' ? 'PENDING' : emi.status}
                   </span>
                 </div>
               </Link>

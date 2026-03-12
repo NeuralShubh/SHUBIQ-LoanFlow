@@ -126,10 +126,10 @@ export default function ReportsPage() {
   useEffect(() => {
     const allowedStatus =
       activeTab === 'EMI'
-        ? ['', 'PENDING', 'PAID', 'OVERDUE', 'PARTIAL']
+        ? ['', 'PENDING', 'PAID', 'PARTIAL']
         : activeTab === 'Members'
           ? ['', 'ACTIVE', 'INACTIVE', 'SUSPENDED']
-          : ['', 'ACTIVE', 'OVERDUE', 'COMPLETED']
+          : ['', 'ACTIVE', 'COMPLETED']
 
     if (!allowedStatus.includes(filters.status)) {
       setFilters(prev => ({ ...prev, status: '' }))
@@ -141,7 +141,6 @@ export default function ReportsPage() {
         { label: 'All Status', value: '' },
         { label: 'Pending', value: 'PENDING' },
         { label: 'Paid', value: 'PAID' },
-        { label: 'Overdue', value: 'OVERDUE' },
         { label: 'Partial', value: 'PARTIAL' },
       ]
     : activeTab === 'Members'
@@ -154,7 +153,6 @@ export default function ReportsPage() {
       : [
           { label: 'All Status', value: '' },
           { label: 'Active', value: 'ACTIVE' },
-          { label: 'Overdue', value: 'OVERDUE' },
           { label: 'Completed', value: 'COMPLETED' },
         ]
 
@@ -288,7 +286,6 @@ export default function ReportsPage() {
                   { label: 'Total Loans', value: loanReport.summary.totalLoans, color: 'blue', format: 'n' },
                   { label: 'Disbursed', value: loanReport.summary.totalDisbursed, color: 'gold', format: 'c' },
                   { label: 'Collected', value: loanReport.summary.totalCollected, color: 'green', format: 'c' },
-                  { label: 'Overdue', value: loanReport.summary.overdueCount, color: 'red', format: 'n' },
                 ].map(s => (
                   <div key={s.label} className={`bg-card border border-border stat-border-${s.color} rounded-xl p-4`}>
                     <div className={`text-xl font-bold font-mono ${s.color === 'blue' ? 'text-blue-400' : s.color === 'gold' ? 'text-amber-400' : s.color === 'green' ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -307,7 +304,9 @@ export default function ReportsPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-sm font-bold font-mono text-amber-400">{formatCurrencyFull(l.principal)}</div>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getLoanStatusColor(l.status)}`}>{l.status}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getLoanStatusColor(l.status)}`}>
+                        {l.status === 'OVERDUE' ? 'ACTIVE' : l.status}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -334,7 +333,9 @@ export default function ReportsPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-sm font-bold font-mono text-white">{formatCurrencyFull(e.amount)}</div>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getEmiStatusColor(e.status)}`}>{e.status}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getEmiStatusColor(e.status)}`}>
+                        {e.status === 'OVERDUE' ? 'PENDING' : e.status}
+                      </span>
                     </div>
                   </div>
                 ))

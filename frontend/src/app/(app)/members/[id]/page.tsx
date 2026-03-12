@@ -46,7 +46,7 @@ export default function MemberDetailPage() {
   if (!member) return <div className="text-center py-20 text-slate-500">Member not found</div>
 
   const activeLoan =
-    member.loans?.find((l: any) => l.status === 'ACTIVE' || l.status === 'OVERDUE') || member.loans?.[0]
+    member.loans?.find((l: any) => l.status === 'ACTIVE') || member.loans?.[0]
 
   const paidEmis = activeLoan?.emis?.filter((e: any) => e.status === 'PAID') ?? []
   const totalPaid = paidEmis.reduce((s: number, e: any) => s + (e.paidAmount || 0), 0)
@@ -253,12 +253,10 @@ export default function MemberDetailPage() {
                     className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold ${
                       emi.status === 'PAID'
                         ? 'bg-emerald-500/15 text-emerald-400'
-                        : emi.status === 'OVERDUE'
-                          ? 'bg-red-500/15 text-red-400'
-                          : 'bg-muted text-slate-500'
-                    }`}
-                  >
-                    {emi.status === 'PAID' ? <CheckCircle className="w-4 h-4" /> : emi.emiNumber}
+                        : 'bg-muted text-slate-500'
+                  }`}
+                >
+                  {emi.status === 'PAID' ? <CheckCircle className="w-4 h-4" /> : emi.emiNumber}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-white">EMI #{emi.emiNumber}</div>
