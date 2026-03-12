@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth'
-import { getDashboardStats, getDashboardChart } from '@/lib/api'
+import { getDashboardStats, getDashboardChart, getLoans } from '@/lib/api'
 import { formatCurrency, formatCurrencyFull, getInitials, getAvatarGradient } from '@/lib/utils'
 import { Bar } from 'react-chartjs-2'
 import {
@@ -10,7 +10,7 @@ import {
 } from 'chart.js'
 import {
   Users, CreditCard, TrendingUp,
-  Wallet, ArrowRight, Clock, CheckCircle, IndianRupee
+  Wallet, ArrowRight, CheckCircle, IndianRupee
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore()
   const [stats, setStats] = useState<Stats | null>(null)
   const [chartData, setChartData] = useState<any[]>([])
+  const [activeLoansList, setActiveLoansList] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(true)
   const [chartUpdatedAt, setChartUpdatedAt] = useState<string | null>(null)
@@ -77,16 +78,28 @@ export default function DashboardPage() {
 
     loadStats(true)
     loadChart(true)
+    getLoans({ status: 'ACTIVE' }).then((r) => {
+      if (!active) return
+      setActiveLoansList(Array.isArray(r.data) ? r.data.slice(0, 10) : [])
+    })
 
     const intervalId = setInterval(() => {
       loadStats(false)
       loadChart(false)
+      getLoans({ status: 'ACTIVE' }).then((r) => {
+        if (!active) return
+        setActiveLoansList(Array.isArray(r.data) ? r.data.slice(0, 10) : [])
+      })
     }, 2500)
 
     const onVisibilityOrFocus = () => {
       if (document.visibilityState === 'visible') {
         loadStats(false)
         loadChart(false)
+        getLoans({ status: 'ACTIVE' }).then((r) => {
+          if (!active) return
+          setActiveLoansList(Array.isArray(r.data) ? r.data.slice(0, 10) : [])
+        })
       }
     }
 
@@ -309,11 +322,11 @@ export default function DashboardPage() {
       <div className="bg-card border border-border rounded-xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-400" />
-            Today's EMIs Due
-            {stats?.todayDueEmis && stats.todayDueEmis.length > 0 && (
+            <CreditCard className="w-4 h-4 text-amber-400" />
+            Active Loans
+            {activeLoansList.length > 0 && (
               <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                {stats.todayDueEmis.length}
+                {activeLoansList.length}
               </span>
             )}
           </h3>
@@ -322,28 +335,26 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {stats?.todayDueEmis && stats.todayDueEmis.length > 0 ? (
+        {activeLoansList.length > 0 ? (
           <div className="divide-y divide-border">
-            {stats.todayDueEmis.map((emi: any) => (
+            {activeLoansList.map((loan: any) => (
               <Link
-                key={emi.id}
-                href={`/members/${emi.loan.memberId}`}
+                key={loan.id}
+                href={`/members/${loan.memberId}`}
                 className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors"
               >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarGradient(emi.loan.member.name)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                  {getInitials(emi.loan.member.name)}
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarGradient(loan.member?.name || '')} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                  {getInitials(loan.member?.name || 'U')}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">{emi.loan.member.name}</div>
+                  <div className="text-sm font-semibold text-white truncate">{loan.member?.name}</div>
                   <div className="text-xs text-slate-500">
-                    EMI #{emi.emiNumber} · {emi.loan.branch.code} · {emi.loan.centre.code}
+                    {loan.loanId} · {loan.branch?.code} · {loan.centre?.code}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-bold font-mono text-amber-400">{formatCurrencyFull(emi.amount)}</div>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md badge-pending">
-                    {emi.status === 'OVERDUE' ? 'PENDING' : emi.status}
-                  </span>
+                  <div className="text-sm font-bold font-mono text-amber-400">{formatCurrencyFull(loan.totalPayable)}</div>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md badge-active">ACTIVE</span>
                 </div>
               </Link>
             ))}
@@ -351,7 +362,7 @@ export default function DashboardPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-slate-600">
             <CheckCircle className="w-10 h-10 mb-2 text-emerald-500/40" />
-            <p className="text-sm font-medium">No EMIs due today</p>
+            <p className="text-sm font-medium">No active loans</p>
           </div>
         )}
       </div>
