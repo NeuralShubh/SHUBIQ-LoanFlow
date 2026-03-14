@@ -20,6 +20,7 @@ interface Stats {
   totalMembers: number
   activeLoans: number
   todayCollected: number
+  todayTarget: number
   totalDisbursed: number
   totalRecovered: number
   outstanding: number
@@ -262,7 +263,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard
           label="Total Disbursed"
           value={stats?.totalDisbursed ?? 0}
@@ -275,6 +276,13 @@ export default function DashboardPage() {
           value={stats?.totalRecovered ?? 0}
           icon={Wallet}
           color="green"
+          format="currency"
+        />
+        <StatCard
+          label="Today's Target"
+          value={stats?.todayTarget ?? 0}
+          icon={IndianRupee}
+          color="gold"
           format="currency"
         />
       </div>

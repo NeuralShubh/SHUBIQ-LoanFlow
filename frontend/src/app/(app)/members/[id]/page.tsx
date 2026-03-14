@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { getMember, payEmi, undoEmi, updateMember, deleteMember } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { formatDate, formatCurrencyFull, getInitials, getAvatarGradient } from '@/lib/utils'
@@ -10,6 +10,7 @@ import { ArrowLeft, Phone, CreditCard, CheckCircle, Clock, IndianRupee, Calendar
 export default function MemberDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAdmin, user } = useAuthStore()
 
   const [member, setMember] = useState<any>(null)
@@ -127,7 +128,12 @@ export default function MemberDetailPage() {
   return (
     <div className="space-y-4 animate-fade-in max-w-2xl mx-auto">
       <button
-        onClick={() => router.back()}
+        onClick={() => {
+          const branchId = searchParams.get('branchId') || ''
+          const centreId = searchParams.get('centreId') || ''
+          const qs = branchId ? `?branchId=${branchId}&centreId=${centreId}` : ''
+          router.push(`/members${qs}`)
+        }}
         className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back

@@ -102,6 +102,8 @@ export const createLoan = (data: any) => api.post('/loans', data)
 export const payEmi = (emiId: string, data: { paidAmount: number; paymentMethod: string; notes?: string }) =>
   api.post(`/emis/${emiId}/pay`, data)
 export const undoEmi = (emiId: string) => api.post(`/emis/${emiId}/undo`)
+export const getPendingEmis = (params: { centreId: string }) =>
+  api.get('/emis/pending', { params })
 
 // Reports
 export const getLoanReport = (params?: any) => api.get('/reports/loans', { params })

@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import {
   getBranches,
@@ -22,6 +22,7 @@ type View = 'branches' | 'centres' | 'members'
 
 export default function MembersPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuthStore()
 
   const [view, setView] = useState<View>('branches')
@@ -57,6 +58,31 @@ export default function MembersPage() {
   useEffect(() => {
     refreshBranches().finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    const branchId = searchParams.get('branchId') || ''
+    if (!branchId || branches.length === 0) return
+    const centreId = searchParams.get('centreId') || ''
+    const branch = branches.find((b) => b.id === branchId)
+    if (!branch) return
+
+    setSelectedBranch(branch)
+    setLoading(true)
+    getCentres(branchId).then((r) => {
+      setCentres(r.data)
+      if (centreId) {
+        const centre = r.data.find((c: any) => c.id === centreId)
+        if (centre) {
+          setSelectedCentre(centre)
+          loadMembers(branchId, centreId)
+          setView('members')
+          return
+        }
+      }
+      setView('centres')
+      setLoading(false)
+    })
+  }, [branches, searchParams])
 
   const loadMembers = (branchId?: string, centreId?: string) => {
     setLoading(true)
@@ -368,7 +394,7 @@ export default function MembersPage() {
                     <button
                       key={m.id}
                       type="button"
-                      onClick={() => router.push(`/members/${m.id}`)}
+                      onClick={() => router.push(`/members/${m.id}?branchId=${selectedBranch?.id || ''}&centreId=${selectedCentre?.id || ''}`)}
                       className="w-full flex items-start sm:items-center gap-3 px-4 sm:px-5 py-4 hover:bg-muted/30 transition-colors text-left"
                     >
                       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarGradient(m.name)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>

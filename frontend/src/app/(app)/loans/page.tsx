@@ -45,6 +45,14 @@ export default function LoansPage() {
     })
     return sum + paidToday.reduce((a: number, e: any) => a + (e.paidAmount || 0), 0)
   }, 0)
+  const todayTarget = loans.reduce((sum, l) => {
+    const emis = l.emis || []
+    const dueToday = emis.filter((e: any) => {
+      const due = new Date(e.dueDate)
+      return due >= todayStart && due <= todayEnd
+    })
+    return sum + dueToday.reduce((a: number, e: any) => a + (e.amount || 0), 0)
+  }, 0)
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -78,6 +86,11 @@ export default function LoansPage() {
           <Wallet className="w-4 h-4 text-emerald-400 mb-2" />
           <div className="text-xl font-bold font-mono text-green">{formatCurrency(collectedToday)}</div>
           <div className="text-xs text-slate-500 mt-1">Collected Today</div>
+        </div>
+        <div className="bg-card border border-border stat-border-gold rounded-xl p-4">
+          <IndianRupee className="w-4 h-4 text-amber-400 mb-2" />
+          <div className="text-xl font-bold font-mono text-amber-400">{formatCurrency(todayTarget)}</div>
+          <div className="text-xs text-slate-500 mt-1">Today's Target</div>
         </div>
         <div className="bg-card border border-border stat-border-blue rounded-xl p-4">
           <CreditCard className="w-4 h-4 text-blue-400 mb-2" />
@@ -223,7 +236,7 @@ function GiveLoanModal({ onClose, onSuccess }: any) {
       <div className="bg-card border border-border rounded-t-2xl lg:rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5 lg:hidden" />
         <h2 className="text-lg font-bold text-white mb-1">Give Loan</h2>
-        <p className="text-sm text-slate-400 mb-5">Auto-calculates 2% fee - All fields required</p>
+        <p className="text-sm text-slate-400 mb-5">2% fee is shown separately and not added to EMI.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

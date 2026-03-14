@@ -9,19 +9,24 @@ function isUniqueConstraintError(error, fieldName) {
   return Boolean(error && error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes(fieldName));
 }
 
-async function getNextCentreCode() {
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function getNextCentreCode(branch) {
   const centres = await prisma.centre.findMany({
-    where: { code: { startsWith: 'C' } },
+    where: { branchId: branch.id },
     select: { code: true },
   });
   let maxNum = 0;
+  const pattern = new RegExp(`^${escapeRegExp(branch.code)}:(\\d{3})$`);
   for (const centre of centres) {
-    const match = /^C(\d+)$/.exec(centre.code);
+    const match = pattern.exec(centre.code);
     if (!match) continue;
     const num = parseInt(match[1], 10);
     if (!Number.isNaN(num) && num > maxNum) maxNum = num;
   }
-  return `C${String(maxNum + 1).padStart(2, '0')}`;
+  return `${branch.code}:${String(maxNum + 1).padStart(3, '0')}`;
 }
 
 // GET /api/centres
@@ -59,12 +64,12 @@ router.post('/', authenticate, async (req, res) => {
 
     const branch = await prisma.branch.findUnique({
       where: { id: branchId },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, code: true },
     });
     if (!branch || !branch.isActive) return res.status(400).json({ error: 'Invalid branch' });
 
     for (let attempt = 1; attempt <= CREATE_CENTRE_MAX_RETRIES; attempt += 1) {
-      const code = await getNextCentreCode();
+      const code = await getNextCentreCode(branch);
       try {
         const centre = await prisma.centre.create({
           data: { code, name: normalizedName, branchId, createdById: req.user.id },

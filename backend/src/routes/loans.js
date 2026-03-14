@@ -14,7 +14,7 @@ function isUniqueConstraintError(error, fieldName) {
 function calculateLoan(principal, interestRate, durationWeeks, fixedFeeRate = 2) {
   const interestAmount = (principal * interestRate * (durationWeeks / 52)) / 100;
   const fixedFee = (principal * fixedFeeRate) / 100;
-  const totalPayable = principal + interestAmount + fixedFee;
+  const totalPayable = principal + interestAmount;
   const weeklyEmi = totalPayable / durationWeeks;
   return { interestAmount, fixedFee, totalPayable, weeklyEmi };
 }

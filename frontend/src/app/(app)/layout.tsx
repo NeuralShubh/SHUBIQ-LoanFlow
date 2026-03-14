@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
-import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, Landmark } from 'lucide-react'
+import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, Landmark, Clock } from 'lucide-react'
 
 const adminNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/members', label: 'Members', icon: Users },
   { href: '/loans', label: 'Loans', icon: CreditCard },
+  { href: '/emis', label: 'EMI', icon: Clock },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -18,6 +19,7 @@ const staffNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/members', label: 'Members', icon: Users },
   { href: '/loans', label: 'Loans', icon: CreditCard },
+  { href: '/emis', label: 'EMI', icon: Clock },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

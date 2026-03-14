@@ -10,19 +10,24 @@ function isUniqueConstraintError(error, fieldName) {
   return Boolean(error && error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes(fieldName));
 }
 
-async function getNextMemberCode() {
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function getNextMemberCode(centre) {
   const members = await prisma.member.findMany({
-    where: { memberId: { startsWith: 'M' } },
+    where: { centreId: centre.id },
     select: { memberId: true },
   });
   let maxNum = 0;
+  const pattern = new RegExp(`^${escapeRegExp(centre.code)}:(\\d{3})$`);
   for (const member of members) {
-    const match = /^M(\d+)$/.exec(member.memberId);
+    const match = pattern.exec(member.memberId);
     if (!match) continue;
     const num = parseInt(match[1], 10);
     if (!Number.isNaN(num) && num > maxNum) maxNum = num;
   }
-  return `M${String(maxNum + 1).padStart(3, '0')}`;
+  return `${centre.code}:${String(maxNum + 1).padStart(3, '0')}`;
 }
 
 
@@ -51,7 +56,7 @@ router.get('/', authenticate, async (req, res) => {
         centre: true,
         staff: { select: { id: true, name: true } },
         loans: {
-          where: { status: { in: ['ACTIVE', 'OVERDUE'] } },
+          where: { status: { in: ['ACTIVE'] } },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -110,14 +115,14 @@ router.post('/', authenticate, async (req, res) => {
 
     const centre = await prisma.centre.findUnique({
       where: { id: centreId },
-      select: { id: true, branchId: true, isActive: true },
+      select: { id: true, branchId: true, isActive: true, code: true },
     });
     if (!centre || !centre.isActive) return res.status(400).json({ error: 'Invalid centre' });
     if (centre.branchId !== branchId) return res.status(400).json({ error: 'Centre does not belong to selected branch' });
 
     const staffId = req.user.role === 'STAFF' ? req.user.id : null;
     for (let attempt = 1; attempt <= CREATE_MEMBER_MAX_RETRIES; attempt += 1) {
-      const memberId = await getNextMemberCode();
+      const memberId = await getNextMemberCode(centre);
       try {
         const member = await prisma.member.create({
           data: {

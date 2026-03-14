@@ -4,6 +4,45 @@ const { authenticate, applyBranchFilter } = require('../middleware/auth');
 
 const router = express.Router();
 
+// GET /api/emis/pending?centreId=...
+router.get('/pending', authenticate, async (req, res) => {
+  try {
+    const { centreId } = req.query;
+    if (!centreId) return res.status(400).json({ error: 'centreId required' });
+
+    const filter = applyBranchFilter(req);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const emis = await prisma.emiPayment.findMany({
+      where: {
+        status: { in: ['PENDING', 'OVERDUE'] },
+        dueDate: { lte: todayEnd },
+        loan: {
+          centreId: String(centreId),
+          ...filter,
+          ...(req.user.role === 'STAFF' ? { staffId: req.user.id } : {}),
+        },
+      },
+      include: {
+        loan: {
+          include: {
+            member: true,
+            branch: true,
+            centre: true,
+          },
+        },
+      },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    res.json(emis);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch pending EMIs' });
+  }
+});
+
 
 async function recalculateLoanStatus(loanId) {
   const loanWithEmis = await prisma.loan.findUnique({

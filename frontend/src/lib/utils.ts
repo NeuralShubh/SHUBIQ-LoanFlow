@@ -61,7 +61,7 @@ export function getEmiStatusColor(status: string) {
 export function calculateLoan(principal: number, rate: number, weeks: number, feeRate = 2) {
   const interestAmount = (principal * rate * (weeks / 52)) / 100
   const fixedFee = (principal * feeRate) / 100
-  const totalPayable = principal + interestAmount + fixedFee
+  const totalPayable = principal + interestAmount
   const weeklyEmi = totalPayable / weeks
   return { interestAmount, fixedFee, totalPayable, weeklyEmi }
 }

@@ -9,19 +9,21 @@ function isUniqueConstraintError(error, fieldName) {
   return Boolean(error && error.code === 'P2002' && Array.isArray(error.meta?.target) && error.meta.target.includes(fieldName));
 }
 
+const BRANCH_PREFIX = 'MS';
+
 async function getNextBranchCode() {
   const branches = await prisma.branch.findMany({
-    where: { code: { startsWith: 'B' } },
+    where: { code: { startsWith: `${BRANCH_PREFIX}:` } },
     select: { code: true },
   });
   let maxNum = 0;
   for (const branch of branches) {
-    const match = /^B(\d+)$/.exec(branch.code);
+    const match = new RegExp(`^${BRANCH_PREFIX}:(\\d{2})$`).exec(branch.code);
     if (!match) continue;
     const num = parseInt(match[1], 10);
     if (!Number.isNaN(num) && num > maxNum) maxNum = num;
   }
-  return `B${String(maxNum + 1).padStart(2, '0')}`;
+  return `${BRANCH_PREFIX}:${String(maxNum + 1).padStart(2, '0')}`;
 }
 
 // GET /api/branches
