@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
-import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, Landmark, Clock } from 'lucide-react'
+import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, Landmark, Clock, UserCog } from 'lucide-react'
 
 const adminNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/members', label: 'Members', icon: Users },
   { href: '/loans', label: 'Loans', icon: CreditCard },
   { href: '/emis', label: 'EMI', icon: Clock },
+  { href: '/staff', label: 'Staff', icon: UserCog },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -61,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Landmark className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-bold text-white leading-none">LoanFlow</div>
+              <div className="text-lg font-bold text-white leading-none">Pragati Finance</div>
               <div className="text-[11px] text-slate-500 mt-1 uppercase tracking-wider">{user.role}</div>
             </div>
           </div>
@@ -95,7 +96,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.35)] flex-shrink-0">
               <Landmark className="w-5 h-5 text-white" />
             </div>
-            <div className="text-lg sm:text-xl font-bold text-white leading-none tracking-tight">LoanFlow</div>
+            <div className="text-lg sm:text-xl font-bold text-white leading-none tracking-tight">Pragati Finance</div>
           </div>
 
           <div className="flex-1" />

@@ -71,7 +71,7 @@ export default function SettingsPage() {
 
   const selectedQr = qrCodes.find(q => q.id === activeQr)
   const qrImageUrl = (upiId: string) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=LoanFlow`)}`
+    `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=Pragati Finance`)}`
 
   return (
     <div className="space-y-5 animate-fade-in max-w-2xl mx-auto">
@@ -131,7 +131,9 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-white">{s.name}</div>
-                    <div className="text-xs text-slate-500 break-all">{s.email} - {s.branch?.code || 'No branch'}</div>
+                    <div className="text-xs text-slate-500 break-all">
+                      {s.staffCode ? `${s.staffCode} • ` : ''}{s.email} - {s.branch?.code || 'No branch'}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setEditingStaff(s)} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center hover:bg-blue-500/20 transition-colors">

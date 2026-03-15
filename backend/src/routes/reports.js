@@ -320,7 +320,7 @@ router.get('/loans', authenticate, async (req, res) => {
 // GET /api/reports/emis
 router.get('/emis', authenticate, async (req, res) => {
   try {
-    const { from, to, branchId, centreId, staffId, status } = req.query;
+    const { from, to, branchId, centreId, staffId, status, search, pendingOnly } = req.query;
     const filter = applyBranchFilter(req);
     const where = {};
     const normalizedStatus = String(status || '').toUpperCase();
@@ -341,6 +341,18 @@ router.get('/emis', authenticate, async (req, res) => {
     if (branchId) where.loan.branchId = branchId;
     if (centreId) where.loan.centreId = centreId;
     if (staffId) where.loan.staffId = staffId;
+    if (search) {
+      where.loan.OR = [
+        { loanId: { contains: String(search), mode: 'insensitive' } },
+        { member: { name: { contains: String(search), mode: 'insensitive' } } },
+        { member: { memberId: { contains: String(search), mode: 'insensitive' } } },
+      ];
+    }
+    if (String(pendingOnly).toLowerCase() === 'true') {
+      where.status = { in: ['PENDING', 'OVERDUE'] };
+      where.dueDate = where.dueDate || {};
+      where.dueDate.lte = new Date();
+    }
 
     const emis = await prisma.emiPayment.findMany({
       where,
@@ -357,12 +369,16 @@ router.get('/emis', authenticate, async (req, res) => {
 // GET /api/reports/branch-summary
 router.get('/branch-summary', authenticate, async (req, res) => {
   try {
-    const { branchId, centreId, from, to, status } = req.query;
+    const { branchId, centreId, from, to, status, staffId } = req.query;
     const branchWhere = { isActive: true };
     if (req.user.role === 'STAFF' && req.user.branchId) {
       branchWhere.id = req.user.branchId;
     } else if (branchId) {
       branchWhere.id = branchId;
+    }
+    if (staffId && !branchWhere.id) {
+      const staff = await prisma.user.findUnique({ where: { id: staffId }, select: { branchId: true } });
+      if (staff?.branchId) branchWhere.id = staff.branchId;
     }
     if (centreId) branchWhere.centres = { some: { id: centreId, isActive: true } };
 
@@ -374,6 +390,7 @@ router.get('/branch-summary', authenticate, async (req, res) => {
     const summary = await Promise.all(branches.map(async (b) => {
       const loanWhere = { branchId: b.id };
       if (req.user.role === 'STAFF') loanWhere.staffId = req.user.id;
+      if (staffId) loanWhere.staffId = staffId;
       if (centreId) loanWhere.centreId = centreId;
       if (status) loanWhere.status = status.toUpperCase();
       if (from || to) {
@@ -384,6 +401,7 @@ router.get('/branch-summary', authenticate, async (req, res) => {
 
       const memberWhere = { isActive: true, branchId: b.id };
       if (req.user.role === 'STAFF') memberWhere.staffId = req.user.id;
+      if (staffId) memberWhere.staffId = staffId;
       if (centreId) memberWhere.centreId = centreId;
 
       const [loans, memberCount] = await Promise.all([
@@ -510,11 +528,17 @@ router.get('/members', authenticate, async (req, res) => {
 // GET /api/reports/centre-summary
 router.get('/centre-summary', authenticate, async (req, res) => {
   try {
-    const { branchId, centreId } = req.query;
+    const { branchId, centreId, staffId } = req.query;
     const filter = applyBranchFilter(req);
     const where = { isActive: true, ...filter };
     if (branchId) where.branchId = branchId;
     if (centreId) where.id = centreId;
+    if (staffId) {
+      where.OR = [
+        { members: { some: { staffId, isActive: true } } },
+        { loans: { some: { staffId } } },
+      ];
+    }
 
     const centres = await prisma.centre.findMany({
       where,
@@ -529,12 +553,14 @@ router.get('/centre-summary', authenticate, async (req, res) => {
             isActive: true,
             centreId: c.id,
             ...(req.user.role === 'STAFF' ? { staffId: req.user.id } : {}),
+            ...(staffId ? { staffId } : {}),
           },
         }),
         prisma.loan.findMany({
           where: {
             centreId: c.id,
             ...(req.user.role === 'STAFF' ? { staffId: req.user.id } : {}),
+            ...(staffId ? { staffId } : {}),
           },
           include: { emis: true },
         }),

@@ -76,7 +76,7 @@ export default function LoginPage() {
             <Landmark className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">LoanFlow</h1>
+            <h1 className="text-xl font-bold text-white">Pragati Finance</h1>
             <p className="text-xs text-slate-500 font-medium tracking-wide">LOAN MANAGEMENT SYSTEM</p>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          LoanFlow v1.0 - Secure Microfinance Platform
+          Pragati Finance v1.0 - Secure Microfinance Platform
         </p>
       </div>
     </div>

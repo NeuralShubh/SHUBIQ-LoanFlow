@@ -4,6 +4,44 @@ const prisma = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
+const STAFF_CODE_PREFIX = 'PF';
+
+function buildNextStaffCode(currentMax) {
+  return `${STAFF_CODE_PREFIX}${String(currentMax + 1).padStart(2, '0')}`;
+}
+
+async function getNextStaffCode() {
+  const staff = await prisma.user.findMany({
+    where: { staffCode: { startsWith: STAFF_CODE_PREFIX } },
+    select: { staffCode: true },
+  });
+  let maxNum = 0;
+  for (const s of staff) {
+    const match = new RegExp(`^${STAFF_CODE_PREFIX}(\\d{2,})$`).exec(s.staffCode || '');
+    if (!match) continue;
+    const num = parseInt(match[1], 10);
+    if (!Number.isNaN(num) && num > maxNum) maxNum = num;
+  }
+  return buildNextStaffCode(maxNum);
+}
+
+async function ensureStaffCodes(staffList) {
+  let maxNum = 0;
+  for (const s of staffList) {
+    const match = new RegExp(`^${STAFF_CODE_PREFIX}(\\d{2,})$`).exec(s.staffCode || '');
+    if (!match) continue;
+    const num = parseInt(match[1], 10);
+    if (!Number.isNaN(num) && num > maxNum) maxNum = num;
+  }
+  const missing = staffList.filter((s) => !s.staffCode);
+  for (const s of missing) {
+    maxNum += 1;
+    await prisma.user.update({
+      where: { id: s.id },
+      data: { staffCode: buildNextStaffCode(maxNum) },
+    });
+  }
+}
 
 // PUT /api/settings/profile
 router.put('/profile', authenticate, async (req, res) => {
@@ -46,6 +84,7 @@ router.get('/staff', authenticate, requireAdmin, async (req, res) => {
       include: { branch: true },
       orderBy: { createdAt: 'desc' },
     });
+    await ensureStaffCodes(staff);
     res.json(staff.map(({ password, ...s }) => s));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch staff' });
@@ -68,6 +107,7 @@ router.post('/staff', authenticate, requireAdmin, async (req, res) => {
     if (exists) return res.status(400).json({ error: 'Email already in use' });
 
     const hashed = await bcrypt.hash(String(password), 10);
+    const staffCode = await getNextStaffCode();
     const staff = await prisma.user.create({
       data: {
         name: String(name).trim(),
@@ -76,6 +116,7 @@ router.post('/staff', authenticate, requireAdmin, async (req, res) => {
         password: hashed,
         role: 'STAFF',
         branchId: branchId || null,
+        staffCode,
       },
       include: { branch: true },
     });

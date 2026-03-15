@@ -9,6 +9,7 @@ export default function EmiPage() {
   const [centres, setCentres] = useState<any[]>([])
   const [centreId, setCentreId] = useState('')
   const [emis, setEmis] = useState<any[]>([])
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [payingEmi, setPayingEmi] = useState<any>(null)
   const [payData, setPayData] = useState({ paidAmount: '', paymentMethod: 'CASH', notes: '' })
@@ -31,6 +32,15 @@ export default function EmiPage() {
       setLoading(false)
     }
   }
+
+  const filteredEmis = emis.filter((emi) => {
+    if (!search) return true
+    const term = search.toLowerCase()
+    const memberName = emi.loan?.member?.name?.toLowerCase() || ''
+    const memberId = emi.loan?.member?.memberId?.toLowerCase() || ''
+    const loanId = emi.loan?.loanId?.toLowerCase() || ''
+    return memberName.includes(term) || memberId.includes(term) || loanId.includes(term)
+  })
 
   const handlePayEmi = async (e: any) => {
     e.preventDefault()
@@ -77,6 +87,15 @@ export default function EmiPage() {
         </div>
       </div>
 
+      <div className="bg-card border border-border rounded-xl px-4 py-2.5 flex items-center gap-2">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by member name or ID..."
+          className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
+        />
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center h-32"><div className="spinner scale-150" /></div>
       ) : (
@@ -84,13 +103,13 @@ export default function EmiPage() {
           <div className="px-5 py-3 border-b border-border flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white">Pending EMIs</h3>
             <span className="text-xs text-slate-400">
-              Total: <span className="text-white font-semibold">{emis.length}</span>
+              Total: <span className="text-white font-semibold">{filteredEmis.length}</span>
             </span>
           </div>
-          {emis.length === 0 ? (
+          {filteredEmis.length === 0 ? (
             <div className="py-12 text-center text-slate-600 text-sm">No pending EMIs</div>
           ) : (
-            emis.map((emi: any) => (
+            filteredEmis.map((emi: any) => (
               <button
                 key={emi.id}
                 type="button"

@@ -2,7 +2,7 @@
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'LoanFlow - Loan Management System',
+  title: 'Pragati Finance - Loan Management System',
   description: 'Professional loan management system for microfinance operations',
 }
 
