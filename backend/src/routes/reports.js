@@ -99,7 +99,7 @@ router.get('/export/excel', authenticate, async (req, res) => {
         durationWeeks: l.durationWeeks,
         totalPayable: l.totalPayable,
         weeklyEmi: l.weeklyEmi,
-        status: l.status,
+        status: l.status === 'OVERDUE' ? 'PENDING' : l.status,
       }));
 
       addSheet('Loans', loanRows);
@@ -142,7 +142,7 @@ router.get('/export/excel', authenticate, async (req, res) => {
         staff: e.loan?.staff?.name || '',
         amount: e.amount,
         paidAmount: e.paidAmount || 0,
-        status: e.status,
+        status: e.status === 'OVERDUE' ? 'PENDING' : e.status,
         paymentMethod: e.paymentMethod || '',
       }));
 
