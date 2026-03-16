@@ -89,7 +89,10 @@ export default function MemberDetailPage() {
     setDeleting(true)
     try {
       await deleteMember(id as string)
-      router.push('/members')
+      const branchId = searchParams.get('branchId') || ''
+      const centreId = searchParams.get('centreId') || ''
+      const qs = branchId ? `?branchId=${branchId}&centreId=${centreId}` : ''
+      router.push(`/members${qs}`)
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to deactivate member')
     } finally {
