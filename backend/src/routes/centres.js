@@ -1,6 +1,7 @@
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 const prisma = require('../lib/prisma');
+const { ACTIONS, getPendingApproval, createApprovalRequest } = require('../services/approvals');
 
 const router = express.Router();
 const CREATE_CENTRE_MAX_RETRIES = 5;
@@ -111,7 +112,7 @@ router.put('/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/centres/:id
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const centre = await prisma.centre.findUnique({
       where: { id: req.params.id },
@@ -125,17 +126,26 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
 
     if (!centre || !centre.isActive) return res.status(404).json({ error: 'Centre not found' });
-
-    const canManage = req.user.role === 'ADMIN' || centre.createdById === req.user.id;
-    if (!canManage) return res.status(403).json({ error: 'Only creator or admin can delete this centre' });
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Admin approval required' });
 
     const hasMembers = (centre._count.members || 0) > 0;
     if (hasMembers) {
       return res.status(400).json({ error: 'Centre must have no members before delete' });
     }
 
-    await prisma.centre.update({ where: { id: centre.id }, data: { isActive: false } });
-    res.json({ message: 'Centre deleted' });
+    const existingApproval = await getPendingApproval(ACTIONS.CENTRE_DELETE, centre.id);
+    if (existingApproval) {
+      return res.status(202).json({ message: 'Delete already pending approval' });
+    }
+
+    await createApprovalRequest({
+      actionType: ACTIONS.CENTRE_DELETE,
+      targetType: 'CENTRE',
+      targetId: centre.id,
+      requestedById: req.user.id,
+      payload: { code: centre.code, name: centre.name },
+    });
+    res.status(202).json({ message: 'Delete request submitted for approval' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete centre' });
   }

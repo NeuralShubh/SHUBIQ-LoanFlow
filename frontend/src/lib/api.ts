@@ -69,6 +69,11 @@ export const getDashboardChart = () =>
     headers: { 'Cache-Control': 'no-cache' },
   })
 
+// Approvals
+export const getApprovals = (params?: any) => api.get('/approvals', { params })
+export const approveApproval = (id: string) => api.post(`/approvals/${id}/approve`)
+export const rejectApproval = (id: string) => api.post(`/approvals/${id}/reject`)
+
 // Branches
 export const getBranches = () => api.get('/branches')
 export const getBranch = (id: string) => api.get(`/branches/${id}`)

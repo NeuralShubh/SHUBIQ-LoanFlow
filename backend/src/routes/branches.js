@@ -1,6 +1,7 @@
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 const prisma = require('../lib/prisma');
+const { ACTIONS, getPendingApproval, createApprovalRequest } = require('../services/approvals');
 
 const router = express.Router();
 const CREATE_BRANCH_MAX_RETRIES = 5;
@@ -128,7 +129,7 @@ router.put('/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/branches/:id
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const branch = await prisma.branch.findUnique({
       where: { id: req.params.id },
@@ -142,17 +143,26 @@ router.delete('/:id', authenticate, async (req, res) => {
     });
 
     if (!branch || !branch.isActive) return res.status(404).json({ error: 'Branch not found' });
-
-    const canManage = req.user.role === 'ADMIN' || branch.createdById === req.user.id;
-    if (!canManage) return res.status(403).json({ error: 'Only creator or admin can delete this branch' });
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Admin approval required' });
 
     const hasCentres = (branch._count.centres || 0) > 0;
     if (hasCentres) {
       return res.status(400).json({ error: 'Branch must have no active centres before delete' });
     }
 
-    await prisma.branch.update({ where: { id: branch.id }, data: { isActive: false } });
-    res.json({ message: 'Branch deleted' });
+    const existingApproval = await getPendingApproval(ACTIONS.BRANCH_DELETE, branch.id);
+    if (existingApproval) {
+      return res.status(202).json({ message: 'Delete already pending approval' });
+    }
+
+    await createApprovalRequest({
+      actionType: ACTIONS.BRANCH_DELETE,
+      targetType: 'BRANCH',
+      targetId: branch.id,
+      requestedById: req.user.id,
+      payload: { code: branch.code, name: branch.name },
+    });
+    res.status(202).json({ message: 'Delete request submitted for approval' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete branch' });
   }

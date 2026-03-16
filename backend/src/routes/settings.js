@@ -2,6 +2,7 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const { ACTIONS, getPendingApproval, createApprovalRequest } = require('../services/approvals');
 
 const router = express.Router();
 const STAFF_CODE_PREFIX = 'PF';
@@ -172,19 +173,25 @@ router.delete('/staff/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const existing = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, role: true },
+      select: { id: true, role: true, name: true, email: true },
     });
     if (!existing || existing.role !== 'STAFF') {
       return res.status(404).json({ error: 'Staff not found' });
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.emiPayment.deleteMany({ where: { loan: { staffId: existing.id } } });
-      await tx.loan.deleteMany({ where: { staffId: existing.id } });
-      await tx.member.deleteMany({ where: { staffId: existing.id } });
-      await tx.user.update({ where: { id: existing.id }, data: { isActive: false, branchId: null } });
+    const existingApproval = await getPendingApproval(ACTIONS.STAFF_DELETE, existing.id);
+    if (existingApproval) {
+      return res.status(202).json({ message: 'Delete already pending approval' });
+    }
+
+    await createApprovalRequest({
+      actionType: ACTIONS.STAFF_DELETE,
+      targetType: 'STAFF',
+      targetId: existing.id,
+      requestedById: req.user.id,
+      payload: { name: existing.name, email: existing.email },
     });
-    res.json({ message: 'Staff deleted with related data purge' });
+    res.status(202).json({ message: 'Delete request submitted for approval' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete staff' });
   }
@@ -217,8 +224,22 @@ router.post('/qr', authenticate, requireAdmin, async (req, res) => {
 // DELETE /api/settings/qr/:id
 router.delete('/qr/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    await prisma.qrCode.update({ where: { id: req.params.id }, data: { isActive: false } });
-    res.json({ message: 'QR code removed' });
+    const qr = await prisma.qrCode.findUnique({ where: { id: req.params.id } });
+    if (!qr) return res.status(404).json({ error: 'QR code not found' });
+
+    const existingApproval = await getPendingApproval(ACTIONS.QR_DELETE, qr.id);
+    if (existingApproval) {
+      return res.status(202).json({ message: 'Delete already pending approval' });
+    }
+
+    await createApprovalRequest({
+      actionType: ACTIONS.QR_DELETE,
+      targetType: 'QR',
+      targetId: qr.id,
+      requestedById: req.user.id,
+      payload: { name: qr.name, upiId: qr.upiId },
+    });
+    res.status(202).json({ message: 'Delete request submitted for approval' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to remove QR code' });
   }

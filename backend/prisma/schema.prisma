@@ -28,6 +28,8 @@ model User {
   members   Member[]
   createdBranches Branch[] @relation("BranchCreator")
   createdCentres  Centre[] @relation("CentreCreator")
+  approvalsRequested ApprovalRequest[] @relation("ApprovalRequestedBy")
+  approvalsApproved  ApprovalRequest[] @relation("ApprovalApprovedBy")
 
   @@index([role, branchId, isActive])
   @@map("users")
@@ -203,4 +205,37 @@ model QrCode {
   updatedAt DateTime @updatedAt
 
   @@map("qr_codes")
+}
+
+model ApprovalRequest {
+  id            String         @id @default(cuid())
+  actionType    ApprovalAction
+  targetType    String
+  targetId      String
+  payload       Json?
+  status        ApprovalStatus @default(PENDING)
+  requestedById String
+  requestedBy   User           @relation("ApprovalRequestedBy", fields: [requestedById], references: [id])
+  approvedById  String?
+  approvedBy    User?          @relation("ApprovalApprovedBy", fields: [approvedById], references: [id])
+  createdAt     DateTime       @default(now())
+  approvedAt    DateTime?
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@map("approval_requests")
+}
+
+enum ApprovalAction {
+  BRANCH_DELETE
+  CENTRE_DELETE
+  MEMBER_DELETE
+  STAFF_DELETE
+  QR_DELETE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

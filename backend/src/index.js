@@ -12,6 +12,7 @@ const emiRoutes = require('./routes/emis');
 const reportRoutes = require('./routes/reports');
 const settingsRoutes = require('./routes/settings');
 const dashboardRoutes = require('./routes/dashboard');
+const approvalRoutes = require('./routes/approvals');
 const { syncOverdueStatuses } = require('./services/overdueSync');
 
 const app = express();
@@ -84,6 +85,7 @@ app.use('/api/loans', loanRoutes);
 app.use('/api/emis', emiRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/approvals', approvalRoutes);
 
 app.get('/api/health', (req, res) => {
   const payload = {

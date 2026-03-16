@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const prisma = require('../lib/prisma');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
+const { ACTIONS, getPendingApproval, createApprovalRequest } = require('../services/approvals');
 
 const router = express.Router();
 const MEMBER_STATUSES = new Set(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
@@ -172,20 +173,36 @@ router.put('/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/members/:id (hard delete with related records)
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const where = { id: req.params.id, isActive: true };
-    if (req.user.role === 'STAFF') where.staffId = req.user.id;
 
-    const existing = await prisma.member.findFirst({ where, select: { id: true } });
+    const existing = await prisma.member.findFirst({
+      where,
+      include: { branch: true, centre: true },
+    });
     if (!existing) return res.status(404).json({ error: 'Member not found' });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.emiPayment.deleteMany({ where: { loan: { memberId: existing.id } } });
-      await tx.loan.deleteMany({ where: { memberId: existing.id } });
-      await tx.member.delete({ where: { id: existing.id } });
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Admin approval required' });
+
+    const existingApproval = await getPendingApproval(ACTIONS.MEMBER_DELETE, existing.id);
+    if (existingApproval) {
+      return res.status(202).json({ message: 'Delete already pending approval' });
+    }
+
+    await createApprovalRequest({
+      actionType: ACTIONS.MEMBER_DELETE,
+      targetType: 'MEMBER',
+      targetId: existing.id,
+      requestedById: req.user.id,
+      payload: {
+        memberId: existing.memberId,
+        name: existing.name,
+        branch: existing.branch?.code,
+        centre: existing.centre?.code,
+      },
     });
-    res.json({ message: 'Member deleted with related data' });
+    res.status(202).json({ message: 'Delete request submitted for approval' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete member' });
   }
