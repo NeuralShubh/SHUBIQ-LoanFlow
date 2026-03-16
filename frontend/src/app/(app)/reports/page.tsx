@@ -293,7 +293,7 @@ export default function ReportsPage() {
         <>
           {activeTab === 'Loans' && loanReport && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
                 {[
                   { label: 'Total Loans', value: loanReport.summary.totalLoans, color: 'blue', format: 'n' },
                   { label: 'Disbursed', value: loanReport.summary.totalDisbursed, color: 'gold', format: 'c' },
@@ -357,7 +357,7 @@ export default function ReportsPage() {
 
           {activeTab === 'Members' && memberReport && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
                 {[
                   { label: 'Total Members', value: memberReport.summary.totalMembers, color: 'blue' },
                   { label: 'Active Members', value: memberReport.summary.activeMembers, color: 'green' },
