@@ -1,4 +1,4 @@
-'use client'
+ï»¿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -269,7 +269,7 @@ export default function MembersPage() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white">{b.name}</div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {b.code} • {b.centres?.length ?? 0} centres • {b._count?.members ?? 0} members
+                    {b.code} â€¢ {b.centres?.length ?? 0} centres â€¢ {b._count?.members ?? 0} members
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -318,7 +318,7 @@ export default function MembersPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white">{c.name}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{c.code} • {c._count?.members ?? 0} members</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{c.code} â€¢ {c._count?.members ?? 0} members</div>
                 </div>
                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                   {canManageEntity(c) && (
@@ -406,7 +406,7 @@ export default function MembersPage() {
                         <div className="text-sm font-semibold text-white truncate">{m.name}</div>
                         <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                           <span>{m.memberId}</span>
-                          <span>•</span>
+                          <span>â€¢</span>
                           <MapPin className="w-2.5 h-2.5" />
                           <span className="truncate">{m.area || m.centre?.name}</span>
                         </div>

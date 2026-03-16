@@ -1,4 +1,4 @@
-'use client'
+ï»¿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { getCentres, getPendingEmis, payEmi } from '@/lib/api'
@@ -218,7 +218,7 @@ export default function EmiPage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-white">{emi.loan?.member?.name}</div>
                     <div className="text-xs text-slate-500">
-                      EMI #{emi.emiNumber} · {formatDate(emi.dueDate)} · {emi.loan?.branch?.code} · {emi.loan?.centre?.code}
+                      EMI #{emi.emiNumber} Â· {formatDate(emi.dueDate)} Â· {emi.loan?.branch?.code} Â· {emi.loan?.centre?.code}
                     </div>
                   </div>
                   <div className="text-right">
@@ -295,7 +295,7 @@ export default function EmiPage() {
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5 lg:hidden" />
             <h2 className="text-lg font-bold text-white mb-1">Pay Selected EMIs</h2>
             <p className="text-sm text-slate-400 mb-5">
-              {selectedEmis.length} EMIs • Total {formatCurrencyFull(selectedTotal)}
+              {selectedEmis.length} EMIs â€¢ Total {formatCurrencyFull(selectedTotal)}
             </p>
             <form onSubmit={handleBulkPay} className="space-y-4">
               <div>
