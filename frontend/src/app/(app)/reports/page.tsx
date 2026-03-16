@@ -30,6 +30,7 @@ export default function ReportsPage() {
   const [filters, setFilters] = useState({ from: '', to: '', branchId: '', centreId: '', status: '' })
   const [branches, setBranches] = useState<any[]>([])
   const [centres, setCentres] = useState<any[]>([])
+  const [centreSearch, setCentreSearch] = useState('')
 
   const [loanReport, setLoanReport] = useState<any>(null)
   const [emiReport, setEmiReport] = useState<any[]>([])
@@ -234,6 +235,12 @@ export default function ReportsPage() {
           {isAdmin && (
             <div>
               <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Centre</label>
+              <input
+                value={centreSearch}
+                onChange={e => setCentreSearch(e.target.value)}
+                placeholder="Search centre by code or name..."
+                className="w-full mb-2 bg-muted border border-border rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 transition-colors"
+              />
               <div className="relative">
                 <select
                   value={filters.centreId}
@@ -241,7 +248,13 @@ export default function ReportsPage() {
                   className="w-full appearance-none bg-muted border border-border rounded-lg px-3 pr-9 py-2 text-xs text-white focus:border-blue-500 transition-colors"
                 >
                   <option value="">All Centres</option>
-                  {centres.map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
+                  {centres
+                    .filter(c => {
+                      if (!centreSearch) return true
+                      const term = centreSearch.toLowerCase()
+                      return `${c.code} ${c.name}`.toLowerCase().includes(term)
+                    })
+                    .map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               </div>

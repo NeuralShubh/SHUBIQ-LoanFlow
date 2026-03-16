@@ -538,6 +538,7 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
   })
   const [branches, setBranches] = useState<any[]>([])
   const [centres, setCentres] = useState<any[]>([])
+  const [centreSearch, setCentreSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -623,6 +624,12 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Centre</label>
+              <input
+                value={centreSearch}
+                onChange={(e) => setCentreSearch(e.target.value)}
+                placeholder="Search centre by code or name..."
+                className="w-full mb-2 bg-muted border border-border rounded-xl px-4 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 transition-colors"
+              />
               <select
                 value={data.centreId}
                 onChange={(e) => setData({ ...data, centreId: e.target.value })}
@@ -630,11 +637,17 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
                 required
               >
                 <option value="">Select...</option>
-                {centres.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.code} - {c.name}
-                  </option>
-                ))}
+                {centres
+                  .filter((c) => {
+                    if (!centreSearch) return true
+                    const term = centreSearch.toLowerCase()
+                    return `${c.code} ${c.name}`.toLowerCase().includes(term)
+                  })
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} - {c.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>

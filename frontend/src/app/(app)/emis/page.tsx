@@ -10,6 +10,7 @@ export default function EmiPage() {
   const [centreId, setCentreId] = useState('')
   const [emis, setEmis] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [centreSearch, setCentreSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [payingEmi, setPayingEmi] = useState<any>(null)
@@ -124,6 +125,14 @@ export default function EmiPage() {
 
       <div className="bg-card border border-border rounded-xl p-4">
         <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Centre</label>
+        <div className="mb-2">
+          <input
+            value={centreSearch}
+            onChange={(e) => setCentreSearch(e.target.value)}
+            placeholder="Search centre by code or name..."
+            className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 transition-colors"
+          />
+        </div>
         <div className="relative">
           <select
             value={centreId}
@@ -134,9 +143,15 @@ export default function EmiPage() {
             className="w-full appearance-none bg-muted border border-border rounded-lg px-3 pr-9 py-2 text-xs text-white focus:border-blue-500 transition-colors"
           >
             <option value="">Select centre</option>
-            {centres.map((c) => (
-              <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-            ))}
+            {centres
+              .filter((c) => {
+                if (!centreSearch) return true
+                const term = centreSearch.toLowerCase()
+                return `${c.code} ${c.name}`.toLowerCase().includes(term)
+              })
+              .map((c) => (
+                <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+              ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
         </div>
