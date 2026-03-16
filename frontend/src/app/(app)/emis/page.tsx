@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getCentres, getPendingEmis, payEmi } from '@/lib/api'
 import { formatCurrencyFull, formatDate, getInitials, getAvatarGradient } from '@/lib/utils'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Search } from 'lucide-react'
 import SearchableSelect from '@/components/SearchableSelect'
 
 export default function EmiPage() {
@@ -142,11 +142,12 @@ export default function EmiPage() {
         />
       </div>
 
-      <div className="bg-card border border-border rounded-xl px-4 py-2.5 flex items-center gap-2">
+      <div className="bg-card border border-border rounded-xl px-4 h-11 flex items-center gap-2 focus-within:border-blue-500 transition-colors">
+        <Search className="w-4 h-4 text-slate-500" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by member name or ID..."
+          placeholder="Search EMI..."
           className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-600 outline-none"
         />
       </div>
