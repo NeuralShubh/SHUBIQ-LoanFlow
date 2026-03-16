@@ -1,4 +1,4 @@
-'use client'
+ï»¿'use client'
 
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth'
@@ -359,7 +359,7 @@ export default function DashboardPage() {
           <h3 className="text-sm font-semibold text-white">6-Month Collection vs Disbursement</h3>
           {chartUpdatedAt && (
             <span className="text-[11px] text-slate-500">
-              Live · {new Date(chartUpdatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              Live Â· {new Date(chartUpdatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}
         </div>
@@ -405,7 +405,7 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white truncate">{loan.member?.name}</div>
                   <div className="text-xs text-slate-500">
-                    {loan.loanId} · {loan.branch?.code} · {loan.centre?.code}
+                    {loan.loanId} Â· {loan.branch?.code} Â· {loan.centre?.code}
                   </div>
                 </div>
                 <div className="text-right">
@@ -449,7 +449,7 @@ export default function DashboardPage() {
                     {a.payload && (
                       <div className="text-xs text-slate-400 mt-2">
                         {a.targetType}: {a.payload.code || a.payload.memberId || a.payload.name || a.payload.upiId || a.targetId}
-                        {a.payload.name ? ` • ${a.payload.name}` : ''}
+                        {a.payload.name ? ` â€¢ ${a.payload.name}` : ''}
                       </div>
                     )}
                     <div className="flex gap-2 mt-3">
