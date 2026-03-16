@@ -16,7 +16,7 @@ import {
   deleteCentre,
 } from '@/lib/api'
 import { getInitials, getAvatarGradient, getLoanStatusColor } from '@/lib/utils'
-import { Building2, Users, ChevronRight, Search, Plus, Home, ArrowLeft, MapPin, Edit2, Trash2 } from 'lucide-react'
+import { Building2, Users, ChevronRight, ChevronDown, Search, Plus, Home, ArrowLeft, MapPin, Edit2, Trash2 } from 'lucide-react'
 
 type View = 'branches' | 'centres' | 'members'
 
