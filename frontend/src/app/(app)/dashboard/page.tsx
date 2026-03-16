@@ -280,7 +280,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard
           label="Total Members"
           value={stats?.totalMembers ?? 0}
@@ -296,23 +296,6 @@ export default function DashboardPage() {
           format="number"
         />
         <StatCard
-          label="Collected Today"
-          value={stats?.todayCollected ?? 0}
-          icon={Wallet}
-          color="green"
-          format="currency"
-        />
-        <StatCard
-          label="Outstanding"
-          value={stats?.outstanding ?? 0}
-          icon={TrendingUp}
-          color="purple"
-          format="currency"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <StatCard
           label="Total Disbursed"
           value={stats?.totalDisbursed ?? 0}
           icon={IndianRupee}
@@ -327,12 +310,33 @@ export default function DashboardPage() {
           format="currency"
         />
         <StatCard
-          label="Today's Target"
-          value={stats?.todayTarget ?? 0}
-          icon={IndianRupee}
-          color="gold"
+          label="Outstanding"
+          value={stats?.outstanding ?? 0}
+          icon={TrendingUp}
+          color="purple"
           format="currency"
         />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="lg:col-start-2">
+          <StatCard
+            label="Today's Target"
+            value={stats?.todayTarget ?? 0}
+            icon={IndianRupee}
+            color="gold"
+            format="currency"
+          />
+        </div>
+        <div className="lg:col-start-3">
+          <StatCard
+            label="Collected Today"
+            value={stats?.todayCollected ?? 0}
+            icon={Wallet}
+            color="green"
+            format="currency"
+          />
+        </div>
       </div>
 
       {/* Progress */}
