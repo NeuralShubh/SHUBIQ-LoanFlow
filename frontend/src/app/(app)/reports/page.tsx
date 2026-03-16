@@ -212,14 +212,24 @@ export default function ReportsPage() {
           <Filter className="w-4 h-4 text-slate-500" />
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Filters</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
             <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">From</label>
-            <input type="date" value={filters.from} onChange={e => setFilters({ ...filters, from: e.target.value })} className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 transition-colors" />
+            <input
+              type="date"
+              value={filters.from}
+              onChange={e => setFilters({ ...filters, from: e.target.value })}
+              className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 transition-colors"
+            />
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">To</label>
-            <input type="date" value={filters.to} onChange={e => setFilters({ ...filters, to: e.target.value })} className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 transition-colors" />
+            <input
+              type="date"
+              value={filters.to}
+              onChange={e => setFilters({ ...filters, to: e.target.value })}
+              className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 transition-colors"
+            />
           </div>
           {isAdmin && (
             <div>
@@ -228,12 +238,12 @@ export default function ReportsPage() {
                 <select
                   value={filters.branchId}
                   onChange={e => setFilters({ ...filters, branchId: e.target.value, centreId: '' })}
-                  className="w-full appearance-none bg-muted border border-border rounded-lg px-3 pr-9 py-2 text-xs text-white focus:border-blue-500 transition-colors"
+                  className="w-full appearance-none bg-muted border border-border rounded-xl px-4 pr-10 py-3 text-sm text-white focus:border-blue-500 transition-colors"
                 >
                   <option value="">All Branches</option>
                   {branches.map(b => <option key={b.id} value={b.id}>{b.code} - {b.name}</option>)}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               </div>
             </div>
           )}
@@ -255,11 +265,11 @@ export default function ReportsPage() {
               <select
                 value={filters.status}
                 onChange={e => setFilters({ ...filters, status: e.target.value })}
-                className="w-full appearance-none bg-muted border border-border rounded-lg px-3 pr-9 py-2 text-xs text-white focus:border-blue-500 transition-colors"
+                className="w-full appearance-none bg-muted border border-border rounded-xl px-4 pr-10 py-3 text-sm text-white focus:border-blue-500 transition-colors"
               >
                 {statusOptions.map(s => <option key={s.value || 'all'} value={s.value}>{s.label}</option>)}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             </div>
           </div>
         </div>
