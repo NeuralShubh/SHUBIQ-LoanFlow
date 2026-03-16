@@ -59,10 +59,14 @@ export default function SearchableSelect({
           onClick={() => setOpen(true)}
           className="w-full flex items-center justify-between bg-muted border border-border rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 transition-colors"
         >
-          <span className={selected ? 'text-white' : 'text-slate-400'}>
+          <span
+            className={`block min-w-0 flex-1 truncate text-left ${
+              selected ? 'text-white' : 'text-slate-400'
+            }`}
+          >
             {selected ? selected.label : placeholder}
           </span>
-          <ChevronDown className="w-4 h-4 text-slate-400" />
+          <ChevronDown className="w-4 h-4 text-slate-400 ml-2 flex-shrink-0" />
         </button>
       ) : (
         <input
