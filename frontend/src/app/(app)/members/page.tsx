@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -17,6 +17,7 @@ import {
 } from '@/lib/api'
 import { getInitials, getAvatarGradient, getLoanStatusColor } from '@/lib/utils'
 import { Building2, Users, ChevronRight, Search, Plus, Home, ArrowLeft, MapPin, Edit2, Trash2 } from 'lucide-react'
+import SearchableSelect from '@/components/SearchableSelect'
 
 type View = 'branches' | 'centres' | 'members'
 
@@ -268,7 +269,7 @@ export default function MembersPage() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white">{b.name}</div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {b.code} â€¢ {b.centres?.length ?? 0} centres â€¢ {b._count?.members ?? 0} members
+                    {b.code} • {b.centres?.length ?? 0} centres • {b._count?.members ?? 0} members
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -317,7 +318,7 @@ export default function MembersPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white">{c.name}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{c.code} â€¢ {c._count?.members ?? 0} members</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{c.code} • {c._count?.members ?? 0} members</div>
                 </div>
                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                   {canManageEntity(c) && (
@@ -405,7 +406,7 @@ export default function MembersPage() {
                         <div className="text-sm font-semibold text-white truncate">{m.name}</div>
                         <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                           <span>{m.memberId}</span>
-                          <span>â€¢</span>
+                          <span>•</span>
                           <MapPin className="w-2.5 h-2.5" />
                           <span className="truncate">{m.area || m.centre?.name}</span>
                         </div>
@@ -538,7 +539,6 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
   })
   const [branches, setBranches] = useState<any[]>([])
   const [centres, setCentres] = useState<any[]>([])
-  const [centreSearch, setCentreSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -560,6 +560,11 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
       setLoading(false)
     }
   }
+
+  const centreOptions = [
+    { value: '', label: 'Select...' },
+    ...centres.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
+  ]
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end lg:items-center justify-center" onClick={onClose}>
@@ -624,31 +629,13 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Centre</label>
-              <input
-                value={centreSearch}
-                onChange={(e) => setCentreSearch(e.target.value)}
-                placeholder="Search centre by code or name..."
-                className="w-full mb-2 bg-muted border border-border rounded-xl px-4 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 transition-colors"
-              />
-              <select
+              <SearchableSelect
                 value={data.centreId}
-                onChange={(e) => setData({ ...data, centreId: e.target.value })}
-                className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 transition-colors"
-                required
-              >
-                <option value="">Select...</option>
-                {centres
-                  .filter((c) => {
-                    if (!centreSearch) return true
-                    const term = centreSearch.toLowerCase()
-                    return `${c.code} ${c.name}`.toLowerCase().includes(term)
-                  })
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.code} - {c.name}
-                    </option>
-                  ))}
-              </select>
+                options={centreOptions}
+                placeholder="Select..."
+                searchPlaceholder="Search centre by code or name..."
+                onChange={(value) => setData({ ...data, centreId: value })}
+              />
             </div>
           </div>
 

@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth'
 import { BarChart3, Filter, ChevronDown, FileSpreadsheet } from 'lucide-react'
 import { Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
+import SearchableSelect from '@/components/SearchableSelect'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
@@ -30,7 +31,6 @@ export default function ReportsPage() {
   const [filters, setFilters] = useState({ from: '', to: '', branchId: '', centreId: '', status: '' })
   const [branches, setBranches] = useState<any[]>([])
   const [centres, setCentres] = useState<any[]>([])
-  const [centreSearch, setCentreSearch] = useState('')
 
   const [loanReport, setLoanReport] = useState<any>(null)
   const [emiReport, setEmiReport] = useState<any[]>([])
@@ -175,6 +175,11 @@ export default function ReportsPage() {
     },
   }
 
+  const centreOptions = [
+    { value: '', label: 'All Centres' },
+    ...centres.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
+  ]
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -235,29 +240,13 @@ export default function ReportsPage() {
           {isAdmin && (
             <div>
               <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Centre</label>
-              <input
-                value={centreSearch}
-                onChange={e => setCentreSearch(e.target.value)}
-                placeholder="Search centre by code or name..."
-                className="w-full mb-2 bg-muted border border-border rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 transition-colors"
+              <SearchableSelect
+                value={filters.centreId}
+                options={centreOptions}
+                placeholder="All Centres"
+                searchPlaceholder="Search centre by code or name..."
+                onChange={(value) => setFilters({ ...filters, centreId: value })}
               />
-              <div className="relative">
-                <select
-                  value={filters.centreId}
-                  onChange={e => setFilters({ ...filters, centreId: e.target.value })}
-                  className="w-full appearance-none bg-muted border border-border rounded-lg px-3 pr-9 py-2 text-xs text-white focus:border-blue-500 transition-colors"
-                >
-                  <option value="">All Centres</option>
-                  {centres
-                    .filter(c => {
-                      if (!centreSearch) return true
-                      const term = centreSearch.toLowerCase()
-                      return `${c.code} ${c.name}`.toLowerCase().includes(term)
-                    })
-                    .map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
             </div>
           )}
           <div>
