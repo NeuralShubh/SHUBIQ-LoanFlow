@@ -17,7 +17,6 @@ import {
 } from '@/lib/api'
 import { getInitials, getAvatarGradient, getLoanStatusColor } from '@/lib/utils'
 import { Building2, Users, ChevronRight, Search, Plus, Home, ArrowLeft, MapPin, Edit2, Trash2 } from 'lucide-react'
-import SearchableSelect from '@/components/SearchableSelect'
 
 type View = 'branches' | 'centres' | 'members'
 
@@ -102,6 +101,7 @@ export default function MembersPage() {
     setLoading(true)
     refreshCentres(branch.id).then(() => {
       setView('centres')
+      router.replace(`/members?branchId=${branch.id}`)
       setLoading(false)
     })
   }
@@ -110,18 +110,27 @@ export default function MembersPage() {
     setSelectedCentre(centre)
     loadMembers(selectedBranch?.id, centre.id)
     setView('members')
+    if (selectedBranch?.id) {
+      router.replace(`/members?branchId=${selectedBranch.id}&centreId=${centre.id}`)
+    }
   }
 
   const navBack = () => {
     if (view === 'members') {
       setView('centres')
       setSelectedCentre(null)
+      if (selectedBranch?.id) {
+        router.replace(`/members?branchId=${selectedBranch.id}`)
+      } else {
+        router.replace('/members')
+      }
       return
     }
 
     if (view === 'centres') {
       setView('branches')
       setSelectedBranch(null)
+      router.replace('/members')
     }
   }
 
@@ -191,6 +200,7 @@ export default function MembersPage() {
                   setView('branches')
                   setSelectedBranch(null)
                   setSelectedCentre(null)
+                  router.replace('/members')
                 }}
                 className="hover:text-slate-300 transition-colors"
               >
@@ -204,6 +214,9 @@ export default function MembersPage() {
                     onClick={() => {
                       setView('centres')
                       setSelectedCentre(null)
+                      if (selectedBranch?.id) {
+                        router.replace(`/members?branchId=${selectedBranch.id}`)
+                      }
                     }}
                     className="hover:text-slate-300 transition-colors"
                   >
@@ -561,11 +574,6 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
     }
   }
 
-  const centreOptions = [
-    { value: '', label: 'Select...' },
-    ...centres.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
-  ]
-
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end lg:items-center justify-center" onClick={onClose}>
       <div
@@ -629,13 +637,21 @@ function AddMemberModal({ branchId, centreId, onClose, onSuccess }: any) {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Centre</label>
-              <SearchableSelect
-                value={data.centreId}
-                options={centreOptions}
-                placeholder="Select..."
-                searchPlaceholder="Search centre by code or name..."
-                onChange={(value) => setData({ ...data, centreId: value })}
-              />
+              <div className="relative">
+                <select
+                  value={data.centreId}
+                  onChange={(e) => setData({ ...data, centreId: e.target.value })}
+                  className="w-full appearance-none bg-muted border border-border rounded-xl px-4 pr-10 py-3 text-sm text-white focus:border-blue-500 transition-colors"
+                >
+                  <option value="">Select...</option>
+                  {centres.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} - {c.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
             </div>
           </div>
 
