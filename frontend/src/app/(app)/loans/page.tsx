@@ -71,7 +71,7 @@ export default function LoansPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="bg-card border border-border stat-border-gold rounded-xl p-4">
           <IndianRupee className="w-4 h-4 text-amber-400 mb-2" />
           <div className="text-xl font-bold font-mono text-amber-400">{formatCurrency(totalDisbursed)}</div>
@@ -82,20 +82,20 @@ export default function LoansPage() {
           <div className="text-xl font-bold font-mono text-green">{formatCurrency(totalRecovered)}</div>
           <div className="text-xs text-slate-500 mt-1">Recovered</div>
         </div>
-        <div className="bg-card border border-border stat-border-green rounded-xl p-4">
-          <Wallet className="w-4 h-4 text-emerald-400 mb-2" />
-          <div className="text-xl font-bold font-mono text-green">{formatCurrency(collectedToday)}</div>
-          <div className="text-xs text-slate-500 mt-1">Collected Today</div>
+        <div className="bg-card border border-border stat-border-blue rounded-xl p-4">
+          <CreditCard className="w-4 h-4 text-blue-400 mb-2" />
+          <div className="text-xl font-bold font-mono text-blue-400">{formatCurrency(outstanding)}</div>
+          <div className="text-xs text-slate-500 mt-1">Outstanding</div>
         </div>
         <div className="bg-card border border-border stat-border-gold rounded-xl p-4">
           <IndianRupee className="w-4 h-4 text-amber-400 mb-2" />
           <div className="text-xl font-bold font-mono text-amber-400">{formatCurrency(todayTarget)}</div>
           <div className="text-xs text-slate-500 mt-1">Today's Target</div>
         </div>
-        <div className="bg-card border border-border stat-border-blue rounded-xl p-4">
-          <CreditCard className="w-4 h-4 text-blue-400 mb-2" />
-          <div className="text-xl font-bold font-mono text-blue-400">{formatCurrency(outstanding)}</div>
-          <div className="text-xs text-slate-500 mt-1">Outstanding</div>
+        <div className="bg-card border border-border stat-border-green rounded-xl p-4">
+          <Wallet className="w-4 h-4 text-emerald-400 mb-2" />
+          <div className="text-xl font-bold font-mono text-green">{formatCurrency(collectedToday)}</div>
+          <div className="text-xs text-slate-500 mt-1">Collected Today</div>
         </div>
       </div>
 
