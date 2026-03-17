@@ -247,7 +247,16 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">
-            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {user?.name.split(' ')[0]} ??
+            {(() => {
+              const name = (user?.name || '').trim()
+              const firstName = name ? name.split(/\s+/)[0] : 'Admin'
+              const greeting = new Date().getHours() < 12
+                ? 'morning'
+                : new Date().getHours() < 17
+                  ? 'afternoon'
+                  : 'evening'
+              return `Good ${greeting}, ${firstName}`
+            })()}
           </h1>
           <p className="text-sm text-slate-400 mt-0.5">{today}</p>
         </div>
