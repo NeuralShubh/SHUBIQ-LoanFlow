@@ -86,6 +86,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               )
             })}
           </nav>
+
+          <div className="mt-auto pt-6 px-2 text-[11px] text-slate-500">
+            <a
+              href="https://shubiq.com"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-slate-300 transition-colors"
+            >
+              Made by <span className="text-slate-300 font-semibold">SHUBIQ Studio</span>
+            </a>
+          </div>
         </div>
       </aside>
 
