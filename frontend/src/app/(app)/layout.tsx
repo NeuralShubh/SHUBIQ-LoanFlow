@@ -117,12 +117,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <div className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 lg:pb-6">{children}</div>
 
-        <div className="lg:hidden fixed bottom-[56px] left-0 right-0 z-40 flex justify-center pb-safe">
-          <div className="text-[10px] text-slate-500 bg-card/80 border border-border rounded-full px-3 py-1">
-            Dashboard
-          </div>
-        </div>
-
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-40 flex pb-safe">
           {nav.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/')

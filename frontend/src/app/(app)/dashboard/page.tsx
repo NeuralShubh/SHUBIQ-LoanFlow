@@ -348,6 +348,17 @@ export default function DashboardPage() {
         <ProgressBar label="Monthly Recovery" pct={stats?.monthlyProgress ?? 0} color="gold" />
       </div>
 
+      <div className="lg:hidden flex justify-center text-[11px] text-slate-500 pt-2">
+        <a
+          href="https://shubiq.com"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-slate-300 transition-colors"
+        >
+          Made by <span className="text-slate-300 font-semibold">SHUBIQ Studio</span>
+        </a>
+      </div>
+
       {user?.role === 'ADMIN' && stats?.storage && (
         <div className="bg-card border border-border rounded-xl p-5">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Database Usage (PostgreSQL)</h3>
