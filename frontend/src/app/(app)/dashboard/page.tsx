@@ -348,12 +348,12 @@ export default function DashboardPage() {
         <ProgressBar label="Monthly Recovery" pct={stats?.monthlyProgress ?? 0} color="gold" />
       </div>
 
-      <div className="lg:hidden flex justify-center text-[11px] text-slate-500 pt-2">
+      <div className="lg:hidden fixed bottom-[64px] left-0 right-0 z-30 flex justify-center">
         <a
           href="https://shubiq.com"
           target="_blank"
           rel="noreferrer"
-          className="hover:text-slate-300 transition-colors"
+          className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors bg-card/80 border border-border rounded-full px-3 py-1"
         >
           Made by <span className="text-slate-300 font-semibold">SHUBIQ Studio</span>
         </a>
