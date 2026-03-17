@@ -55,8 +55,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <aside className="hidden lg:flex lg:w-64 xl:w-72 border-r border-border bg-card/70 backdrop-blur-sm overflow-hidden">
-        <div className="w-full p-4 flex flex-col">
+      <aside className="hidden lg:flex lg:w-64 xl:w-72 h-screen sticky top-0 border-r border-border bg-card/70 backdrop-blur-sm overflow-hidden">
+        <div className="w-full h-full p-4 flex flex-col">
           <div className="flex items-center gap-3 px-2 py-2 mb-4">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.35)]">
               <Landmark className="w-5 h-5 text-white" />
